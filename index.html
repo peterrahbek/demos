@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#f4f1ec" />
+  <title>Moon Rollin' — View in your space</title>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin />
+  <link rel="icon" href="data:," />
+  <style>
+    :root{
+      --bg:#f4f1ec;
+      --ink:#111;
+      --ink-60:rgba(17,17,17,.6);
+      --ink-10:rgba(17,17,17,.08);
+      --ultra:#2c4dc4;
+      --sans:"Inter","Helvetica Neue",Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);font-weight:400;letter-spacing:-.01em;overscroll-behavior:none}
+    body{display:flex;flex-direction:column;min-height:100dvh}
+    a{color:inherit}
+
+    header{
+      position:sticky;top:0;z-index:10;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:18px 22px;background:var(--bg);
+      border-bottom:1px solid var(--ink-10);
+    }
+    .wordmark{font-weight:600;letter-spacing:.18em;font-size:13px;text-transform:uppercase}
+    .breadcrumb{font-size:12px;color:var(--ink-60);letter-spacing:.04em}
+
+    main{flex:1;display:grid;grid-template-columns:1fr;gap:0}
+    @media (min-width:960px){ main{grid-template-columns:1.2fr .8fr} }
+
+    .stage{
+      position:relative;background:linear-gradient(180deg,#efece6 0%,#e7e2d9 100%);
+      min-height:65vh; aspect-ratio:1/1;
+    }
+    @media (min-width:960px){ .stage{aspect-ratio:auto;min-height:calc(100dvh - 58px)} }
+    #viewer{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+
+    .stage-controls{
+      position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:10px;pointer-events:none;
+    }
+    .pill{
+      pointer-events:auto;background:rgba(255,255,255,.85);backdrop-filter:blur(6px);
+      border:1px solid var(--ink-10);border-radius:999px;
+      padding:8px 14px;font-size:12px;letter-spacing:.04em;
+      color:var(--ink-60);text-transform:uppercase;
+    }
+
+    .swatches{
+      position:absolute;left:18px;top:18px;display:flex;flex-direction:column;gap:10px;
+    }
+    .swatch{
+      width:32px;height:32px;border-radius:999px;border:2px solid transparent;cursor:pointer;
+      background-clip:padding-box;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:transform .15s ease;
+    }
+    .swatch:hover{transform:scale(1.06)}
+    .swatch[aria-selected="true"]{border-color:var(--ink)}
+
+    .panel{padding:28px 26px 40px;display:flex;flex-direction:column;gap:18px;max-width:560px}
+    .eyebrow{font-size:11px;letter-spacing:.18em;color:var(--ink-60);text-transform:uppercase}
+    h1{font-size:34px;line-height:1.05;margin:0;font-weight:500;letter-spacing:-.02em}
+    .price{font-size:18px}
+    p.lede{font-size:15px;line-height:1.55;color:#222;margin:0}
+
+    .cta{
+      display:flex;flex-direction:column;gap:10px;margin-top:6px;
+    }
+    button.primary{
+      appearance:none;border:0;background:var(--ink);color:#fff;
+      padding:16px 18px;border-radius:10px;font:inherit;font-size:14px;letter-spacing:.04em;
+      text-transform:uppercase;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;
+      transition:background .2s ease;
+    }
+    button.primary:hover{background:#000}
+    button.primary[disabled]{background:#888;cursor:not-allowed}
+    button.ghost{
+      appearance:none;background:transparent;border:1px solid var(--ink);color:var(--ink);
+      padding:14px 18px;border-radius:10px;font:inherit;font-size:13px;letter-spacing:.04em;
+      text-transform:uppercase;cursor:pointer;
+    }
+    .ar-icon{width:18px;height:18px}
+
+    .specs{margin-top:10px;border-top:1px solid var(--ink-10)}
+    .spec{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:14px 0;border-bottom:1px solid var(--ink-10);font-size:13px}
+    .spec dt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-60)}
+    .spec dd{margin:0;color:#222;line-height:1.5}
+
+    .ar-help{font-size:12px;color:var(--ink-60);line-height:1.5}
+    .ar-help code{background:var(--ink-10);padding:2px 5px;border-radius:4px;font-size:11px}
+
+    /* AR overlay (shown during XR session) */
+    #ar-overlay{position:fixed;inset:0;pointer-events:none;display:none;flex-direction:column;justify-content:space-between;padding:env(safe-area-inset-top,16px) 16px env(safe-area-inset-bottom,16px);z-index:50;color:#fff;font-family:var(--sans);}
+    #ar-overlay.active{display:flex}
+    #ar-overlay .top,#ar-overlay .bottom{pointer-events:auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    #ar-overlay .hint{
+      align-self:center;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);
+      padding:10px 16px;border-radius:999px;font-size:13px;letter-spacing:.02em;
+    }
+    #ar-overlay .chip{
+      background:rgba(0,0,0,.55);backdrop-filter:blur(8px);color:#fff;border:0;
+      padding:10px 14px;border-radius:999px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+    }
+    #ar-overlay button{font:inherit;cursor:pointer}
+    #ar-overlay .placed-actions{display:none;gap:10px}
+    #ar-overlay.placed .placed-actions{display:flex}
+    #ar-overlay.placed .hint{display:none}
+
+    /* Modal */
+    .modal-back{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+    .modal-back.open{display:flex}
+    .modal{background:#fff;border-radius:14px;max-width:420px;width:100%;padding:24px;font-family:var(--sans)}
+    .modal h2{margin:0 0 8px;font-size:18px;font-weight:500}
+    .modal p{margin:0 0 14px;font-size:14px;line-height:1.55;color:#333}
+    .modal .row{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+    .qr{display:flex;justify-content:center;margin:10px 0 18px}
+    .qr img{width:180px;height:180px;background:#eee;border-radius:6px}
+
+    .footer-note{font-size:11px;color:var(--ink-60);padding:18px 22px;border-top:1px solid var(--ink-10)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wordmark">Pedestal</div>
+    <div class="breadcrumb">TV Stands / Moon Rollin'</div>
+  </header>
+
+  <main>
+    <section class="stage" aria-label="3D preview">
+      <canvas id="viewer"></canvas>
+
+      <div class="swatches" role="listbox" aria-label="Color">
+        <button class="swatch" data-color="ultra-marine" style="background:#2c4dc4" aria-selected="true" title="Ultra Marine"></button>
+        <button class="swatch" data-color="charcoal" style="background:#2a2a2c" aria-selected="false" title="Charcoal"></button>
+        <button class="swatch" data-color="pearl" style="background:#f0ebe2" aria-selected="false" title="Pearl"></button>
+        <button class="swatch" data-color="mossy-green" style="background:#6c7a5b" aria-selected="false" title="Mossy Green"></button>
+      </div>
+
+      <div class="stage-controls">
+        <div class="pill">Drag to rotate · Pinch to zoom</div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="eyebrow">Pipe Series · Stands w/ Wheels</div>
+      <h1>Moon Rollin'<br/><span style="color:var(--ink-60);font-weight:400">Ultra Marine</span></h1>
+      <div class="price">€340,00</div>
+      <p class="lede">A functional TV stand on wheels with soft, curved lines that contrast its sturdy steel construction. Roll it from one room to another. Includes wheels, VESA-kit and mounting kit.</p>
+
+      <div class="cta">
+        <button id="ar-button" class="primary">
+          <svg class="ar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M3 8.5 12 4l9 4.5v7L12 20l-9-4.5v-7z"/>
+            <path d="M3 8.5 12 13l9-4.5M12 13v7"/>
+          </svg>
+          View in your space
+        </button>
+        <button id="reset-button" class="ghost">Reset view</button>
+      </div>
+
+      <p class="ar-help" id="ar-help"></p>
+
+      <dl class="specs">
+        <div class="spec"><dt>Dimensions</dt><dd>H 107 × W 78 × D 54 cm</dd></div>
+        <div class="spec"><dt>Weight</dt><dd>7.5 kg</dd></div>
+        <div class="spec"><dt>Material</dt><dd>Powder-coated steel with satin finish · PU-tread wheels</dd></div>
+        <div class="spec"><dt>Screen size</dt><dd>40–70" (recommended 50–60")</dd></div>
+        <div class="spec"><dt>Max load</dt><dd>50 kg · VESA standard</dd></div>
+      </dl>
+    </aside>
+  </main>
+
+  <div class="footer-note">3D preview is a stylized representation. Reference: pedestal.com/products/moon-rollin-ultra-marine</div>
+
+  <!-- AR session overlay -->
+  <div id="ar-overlay">
+    <div class="top">
+      <button class="chip" id="ar-exit">Exit AR</button>
+      <div></div>
+    </div>
+    <div class="hint" id="ar-hint">Move your phone slowly to find a floor</div>
+    <div class="bottom">
+      <div class="placed-actions">
+        <button class="chip" id="ar-rotate-l">↺ Rotate</button>
+        <button class="chip" id="ar-rotate-r">Rotate ↻</button>
+        <button class="chip" id="ar-reset">Move again</button>
+      </div>
+      <button class="chip" id="ar-color" style="margin-left:auto">Change color</button>
+    </div>
+  </div>
+
+  <!-- Fallback / iOS modal -->
+  <div class="modal-back" id="ios-modal">
+    <div class="modal">
+      <h2>AR isn't available on this browser</h2>
+      <p>Apple Quick Look AR for this product would normally require a USDZ model. This demo uses WebXR, which is supported in <strong>Chrome on Android</strong> with a recent ARCore install.</p>
+      <p>You can still rotate and pinch the 3D preview on the left.</p>
+      <div class="row">
+        <button class="ghost" id="ios-close" style="appearance:none;border:1px solid #111;background:#fff;padding:10px 14px;border-radius:8px;cursor:pointer">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three/build/three.module.js",
+      "three/addons/": "./vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
