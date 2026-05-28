@@ -3,6 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import { USDZExporter } from "three/addons/exporters/USDZExporter.js";
 
 // Pedestal Studio color values (sRGB) for the Ultra Marine line
 const COLORS = {
@@ -311,17 +312,21 @@ const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 (async () => {
+  if (isiOS) {
+    arHelp.textContent = "Tap to open in AR Quick Look. Move your phone slowly, then drag the stand to where you want it.";
+    return;
+  }
   const ar = await checkAR();
   if (ar.ok) {
     arHelp.textContent = "Tap to launch AR. Walk back a step, point at the floor, then tap to place.";
-  } else if (isiOS) {
-    arHelp.innerHTML = "On iPhone/iPad, WebXR AR isn't supported in Safari. The 3D preview works — tap <em>View in your space</em> for details.";
   } else {
-    arHelp.textContent = "WebXR AR isn't available. Open this page in Chrome on a recent Android phone (with ARCore) to view it in your room.";
+    arHelp.textContent = "WebXR AR isn't available here. Open this page in Chrome on Android (with ARCore), or in Safari on iPhone/iPad.";
   }
 })();
 
 async function startAR() {
+  // iOS path: AR Quick Look via a USDZ exported from the current scene
+  if (isiOS) { return launchQuickLook(); }
   const ar = await checkAR();
   if (!ar.ok) { iosModal.classList.add("open"); return; }
   try {
@@ -337,6 +342,46 @@ async function startAR() {
   }
 }
 arButton.addEventListener("click", startAR);
+
+// ─── iOS AR Quick Look (USDZ) ─────────────────────────────────────────────
+let lastUsdzUrl = null;
+async function launchQuickLook() {
+  arButton.disabled = true;
+  arButton.querySelector(".ar-icon")?.classList.add("loading");
+  const prevLabel = arButton.textContent.trim();
+  try {
+    // Build a fresh export tree from the current scene so colour swaps and
+    // TV-toggle state are captured. USDZExporter walks the supplied root.
+    const exportRoot = product.clone(true);
+    // Match the user's current TV visibility
+    exportRoot.traverse((o) => { if (o.name === "tv") o.visible = tvContainer.visible; });
+
+    const exporter = new USDZExporter();
+    const arraybuffer = await exporter.parse(exportRoot);
+    const blob = new Blob([arraybuffer], { type: "model/vnd.usdz+zip" });
+    if (lastUsdzUrl) URL.revokeObjectURL(lastUsdzUrl);
+    lastUsdzUrl = URL.createObjectURL(blob);
+
+    // AR Quick Look requires a real <a rel="ar"> click. Safari intercepts before
+    // navigation and opens the file in the Quick Look AR viewer.
+    const a = document.createElement("a");
+    a.rel = "ar";
+    a.href = lastUsdzUrl + "#allowsContentScaling=0";
+    // The anchor must contain an <img> for Safari to treat it as AR-eligible.
+    const img = document.createElement("img");
+    img.alt = "Moon Rollin' in AR";
+    img.style.display = "none";
+    a.appendChild(img);
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => a.remove(), 1000);
+  } catch (e) {
+    console.error("USDZ export failed", e);
+    alert("Couldn't open AR Quick Look: " + e.message);
+  } finally {
+    arButton.disabled = false;
+  }
+}
 
 async function onSessionStart(session) {
   arOverlay.classList.add("active");
