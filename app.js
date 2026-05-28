@@ -273,6 +273,19 @@ document.getElementById("ar-color").addEventListener("click", () => {
   setColor(colorKeys[currentColorIdx]);
 });
 
+// ─── TV visibility toggle (works in both preview and AR) ──────────────────
+const tvBtn = document.getElementById("tv-toggle");
+const arTvBtn = document.getElementById("ar-tv");
+
+function setTvVisible(visible) {
+  tvContainer.visible = visible;
+  const pressed = String(visible);
+  tvBtn.setAttribute("aria-pressed", pressed);
+  arTvBtn.setAttribute("aria-pressed", pressed);
+}
+tvBtn.addEventListener("click", () => setTvVisible(!tvContainer.visible));
+arTvBtn.addEventListener("click", () => setTvVisible(!tvContainer.visible));
+
 document.getElementById("reset-button").addEventListener("click", () => {
   camera.position.set(2.4, 1.05, 2.1);
   controls.target.set(0, 0.6, 0);
