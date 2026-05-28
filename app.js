@@ -13,17 +13,18 @@ const COLORS = {
 };
 const STRUCTURE_MAT_NAME = "UltraMarine.Structure.001";
 
-// Moon Rollin' dimensions. GLB legs end at y=0.063 in local coords with corners at
-// (±0.378, ±0.262). We size the procedural caster stack so its top exactly meets the
-// leg bottoms with the body container at y=0.
+// Moon Rollin' geometry constants
+// - body GLB legs end at y=0.063 in body-local with corners at (±0.378, ±0.262)
+// - wheels-standard GLB swivel mount top is at y≈0.078 in wheel-local
+// So bodyContainer sits at y = 0.078 - 0.063 = 0.015 to land the legs on the casters.
 const DIM = {
   totalHeight: 1.07,
-  wheelR: 0.028,
-  wheelW: 0.024,
   legCornerX: 0.378,
   legCornerZ: 0.262,
-  legBottomY: 0.063,    // top of caster stack must match this
+  legBottomY: 0.063,
+  wheelMountY: 0.078,
 };
+DIM.bodyLift = DIM.wheelMountY - DIM.legBottomY;
 
 // ─── Scene setup ──────────────────────────────────────────────────────────
 const canvas = document.getElementById("viewer");
@@ -43,7 +44,7 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.06).texture;
 
 const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 50);
-camera.position.set(1.6, 1.1, 2.0);
+camera.position.set(2.4, 1.05, 2.1);
 
 // Lights — key + ambient + rim, tuned for satin steel
 const key = new THREE.DirectionalLight(0xfff5e8, 1.7);
@@ -81,115 +82,125 @@ const product = new THREE.Group();
 product.name = "moonRollin";
 productPivot.add(product);
 
-let structureMat = null;   // ref to the body's PBR material — recolored on swatch click
+// PBR materials we recolor on swatch click
+let structureMat = null;   // body frame (UltraMarine.Structure.001)
+const wheelMats = [];      // each cloned caster's tintable material
+
 const wheelGroup = new THREE.Group();
 wheelGroup.name = "wheels";
-
-// Procedural casters under each leg. Pedestal's wheels-standard.glb is a separate
-// asset (per studio.liquid manifest); these are stand-ins until that GLB lands.
-function buildWheels() {
-  const black = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.75, metalness: 0.05 });
-  const chrome = new THREE.MeshStandardMaterial({ color: 0xbcc0c6, roughness: 0.28, metalness: 0.9 });
-
-  const bracketH = 0.012;
-  const postH = DIM.legBottomY - (2 * DIM.wheelR + bracketH);
-  // Stack height from ground to top of swivel post = wheel + bracket + post = DIM.legBottomY
-
-  for (const x of [-DIM.legCornerX, DIM.legCornerX]) {
-    for (const z of [-DIM.legCornerZ, DIM.legCornerZ]) {
-      const g = new THREE.Group();
-      // Wheel
-      const w = new THREE.Mesh(
-        new THREE.CylinderGeometry(DIM.wheelR, DIM.wheelR, DIM.wheelW, 28),
-        black,
-      );
-      w.rotation.z = Math.PI / 2;
-      w.position.y = DIM.wheelR;
-      w.castShadow = true;
-      g.add(w);
-      // Hub cap
-      const h = new THREE.Mesh(
-        new THREE.CylinderGeometry(DIM.wheelR * 0.4, DIM.wheelR * 0.4, DIM.wheelW + 0.002, 16),
-        chrome,
-      );
-      h.rotation.z = Math.PI / 2;
-      h.position.y = DIM.wheelR;
-      g.add(h);
-      // Caster bracket
-      const b = new THREE.Mesh(
-        new THREE.BoxGeometry(DIM.wheelW + 0.014, bracketH, DIM.wheelR * 1.9),
-        chrome,
-      );
-      b.position.y = 2 * DIM.wheelR + bracketH / 2;
-      g.add(b);
-      // Swivel post
-      const post = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.010, 0.011, Math.max(0.001, postH), 14),
-        chrome,
-      );
-      post.position.y = 2 * DIM.wheelR + bracketH + postH / 2;
-      g.add(post);
-
-      g.position.set(x, 0, z);
-      wheelGroup.add(g);
-    }
-  }
-}
-buildWheels();
 product.add(wheelGroup);
 
-// Body sits at y=0 — its legs reach down to y=0.063 which is exactly the top of the
-// caster swivel posts. No vertical lift needed.
+// Body container sits above wheels so legs land on caster swivel-tops
 const bodyContainer = new THREE.Group();
 bodyContainer.name = "body";
+bodyContainer.position.y = DIM.bodyLift;
 product.add(bodyContainer);
+
+const tvContainer = new THREE.Group();
+tvContainer.name = "tv";
+bodyContainer.add(tvContainer);
 
 // ─── Load the real GLB ────────────────────────────────────────────────────
 const draco = new DRACOLoader();
 draco.setDecoderPath("./vendor/three/examples/jsm/libs/draco/gltf/");
 const loader = new GLTFLoader();
 loader.setDRACOLoader(draco);
-loader.load("./assets/moon-regular.glb", (gltf) => {
-  const root = gltf.scene;
-  root.traverse((o) => {
-    if (o.isMesh) {
-      o.castShadow = true;
-      o.receiveShadow = true;
-      if (o.material && o.material.name === STRUCTURE_MAT_NAME) {
-        structureMat = o.material;
-        // Make sure baseColorFactor (not a texture) drives the color
-        structureMat.map = null;
-        structureMat.color.setHex(COLORS["ultra-marine"].hex);
-        structureMat.metalness = 0.4;
-        structureMat.roughness = 0.45;
-        structureMat.needsUpdate = true;
-      }
-      if (o.material && /metal|screw/i.test(o.material.name)) {
-        o.material.metalness = 0.85;
-        o.material.roughness = 0.35;
-      }
-    }
-  });
-  bodyContainer.add(root);
 
-  // Center the camera on the assembled product
-  const box = new THREE.Box3().setFromObject(product);
-  const ctr = box.getCenter(new THREE.Vector3());
-  controls.target.copy(ctr);
-  camera.lookAt(ctr);
-}, undefined, (err) => {
+function loadGLB(path) {
+  return new Promise((resolve, reject) => loader.load(path, resolve, undefined, reject));
+}
+
+function tuneMaterial(mat) {
+  if (!mat) return;
+  if (/metal|screw/i.test(mat.name)) {
+    mat.metalness = 0.85; mat.roughness = 0.35;
+  } else {
+    mat.metalness = 0.4; mat.roughness = 0.45;
+  }
+}
+
+Promise.all([
+  loadGLB("./assets/moon-regular.glb"),
+  loadGLB("./assets/wheels-standard.glb"),
+  loadGLB("./assets/screen-50.glb"),
+]).then(([bodyGltf, wheelGltf, tvGltf]) => {
+
+  // ── Body ──
+  const body = bodyGltf.scene;
+  body.traverse((o) => {
+    if (!o.isMesh) return;
+    o.castShadow = true; o.receiveShadow = true;
+    if (o.material?.name === STRUCTURE_MAT_NAME) {
+      structureMat = o.material;
+      structureMat.map = null;
+      structureMat.color.setHex(COLORS["ultra-marine"].hex);
+    }
+    tuneMaterial(o.material);
+  });
+  bodyContainer.add(body);
+
+  // ── Wheels: instance the single caster GLB at each leg corner ──
+  const wheelProto = wheelGltf.scene;
+  // The caster GLB looks down the +Z direction in its local frame. Each leg
+  // corner gets its own clone with materials cloned so we can tint them.
+  for (const x of [-DIM.legCornerX, DIM.legCornerX]) {
+    for (const z of [-DIM.legCornerZ, DIM.legCornerZ]) {
+      const inst = wheelProto.clone(true);
+      inst.traverse((o) => {
+        if (!o.isMesh) return;
+        o.castShadow = true; o.receiveShadow = true;
+        if (o.material) {
+          o.material = o.material.clone();
+          if (/wheel/i.test(o.material.name)) {
+            o.material.map = null;
+            o.material.color.setHex(COLORS["ultra-marine"].hex);
+            wheelMats.push(o.material);
+          }
+          tuneMaterial(o.material);
+        }
+      });
+      // Swivel a touch so the casters look like they've settled, not aligned
+      inst.rotation.y = Math.atan2(z, x);
+      inst.position.set(x, 0, z);
+      wheelGroup.add(inst);
+    }
+  }
+
+  // ── 50" TV mounted on the VESA plate ──
+  const tv = tvGltf.scene;
+  tv.traverse((o) => {
+    if (!o.isMesh) return;
+    o.castShadow = true; o.receiveShadow = true;
+    // The screen GLB has no materials — give it a TV-style PBR shader
+    o.material = new THREE.MeshStandardMaterial({
+      color: 0x0c0d10, roughness: 0.18, metalness: 0.15,
+      emissive: 0x12182a, emissiveIntensity: 0.25,
+    });
+  });
+  // After the GLB's built-in 0.01 scale, the TV is ~1.17m × 0.68m × 0.035m.
+  // Mount it centered, at the upper half of the body, just in front of the back plate.
+  tv.position.set(0, 0.75, 0.038);
+  tvContainer.add(tv);
+
+  // ── Camera framing ── target the body center, pull camera back to fit TV+stand
+  const target = new THREE.Vector3(0, 0.6, 0);
+  controls.target.copy(target);
+  camera.position.set(2.4, 1.05, 2.1);
+  camera.lookAt(target);
+  controls.update();
+}).catch((err) => {
   console.error("GLB load failed", err);
   document.getElementById("ar-help").textContent =
-    "Couldn't load the 3D model. Check that assets/moon-regular.glb is served.";
+    "Couldn't load the 3D model. Check that assets/*.glb is served.";
 });
 
 // ─── Controls ─────────────────────────────────────────────────────────────
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, DIM.totalHeight * 0.5, 0);
+controls.target.set(0, 0.6, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.minDistance = 1.0;
-controls.maxDistance = 5;
+controls.minDistance = 1.2;
+controls.maxDistance = 6;
 controls.maxPolarAngle = Math.PI * 0.52;
 controls.minPolarAngle = Math.PI * 0.2;
 controls.autoRotate = true;
@@ -238,9 +249,14 @@ renderer.setAnimationLoop((time, frame) => {
 
 // ─── Color swatches ───────────────────────────────────────────────────────
 function setColor(key) {
+  const hex = COLORS[key].hex;
   if (structureMat) {
-    structureMat.color.setHex(COLORS[key].hex);
+    structureMat.color.setHex(hex);
     structureMat.needsUpdate = true;
+  }
+  for (const m of wheelMats) {
+    m.color.setHex(hex);
+    m.needsUpdate = true;
   }
   document.querySelectorAll(".swatch").forEach((s) => {
     s.setAttribute("aria-selected", String(s.dataset.color === key));
@@ -258,8 +274,8 @@ document.getElementById("ar-color").addEventListener("click", () => {
 });
 
 document.getElementById("reset-button").addEventListener("click", () => {
-  camera.position.set(1.6, 1.1, 2.0);
-  controls.target.set(0, DIM.totalHeight * 0.5, 0);
+  camera.position.set(2.4, 1.05, 2.1);
+  controls.target.set(0, 0.6, 0);
   controls.autoRotate = true;
   controls.update();
 });
