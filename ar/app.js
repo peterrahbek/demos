@@ -360,8 +360,9 @@ function setColor(key) {
   document.querySelectorAll(".swatch").forEach((s) => {
     s.setAttribute("aria-selected", String(s.dataset.color === key));
   });
-  const nameEl = document.getElementById("color-name");
-  if (nameEl) nameEl.textContent = COLORS[key].name;
+  document.querySelectorAll("[data-color-name]").forEach((el) => {
+    el.textContent = COLORS[key].name;
+  });
   document.querySelectorAll(".title .variant").forEach((el) => {
     el.textContent = COLORS[key].name;
   });
@@ -483,52 +484,56 @@ if (!isMobile) {
     renderer.render(scene, camera);
   });
 
-  // Swatches
-  document.querySelectorAll(".swatch").forEach((btn) => {
-    btn.addEventListener("click", () => setColor(btn.dataset.color));
-  });
-
-  // TV cycle: off → 40 → 50 → 60 → 70 → off
-  const TV_STATES = ["off", "40", "50", "60", "70"];
-  function cycleTv() {
-    const now = tvContainer.visible ? currentTvSize : "off";
-    const next = TV_STATES[(TV_STATES.indexOf(now) + 1) % TV_STATES.length];
-    if (next === "off") {
-      setTvVisible(false);
-    } else {
-      setTvSize(next);
-      if (!tvContainer.visible) setTvVisible(true);
-    }
-    updateTvCycleLabel();
-  }
-  function updateTvCycleLabel() {
-    const cycleBtn = document.getElementById("tv-cycle");
-    const label = document.getElementById("tv-label");
-    if (!cycleBtn || !label) return;
-    if (tvContainer.visible) {
-      cycleBtn.setAttribute("aria-pressed", "true");
-      label.textContent = `${currentTvSize}" TV`;
-    } else {
-      cycleBtn.setAttribute("aria-pressed", "false");
-      label.textContent = "TV hidden";
-    }
-  }
-  document.getElementById("tv-cycle").addEventListener("click", cycleTv);
-
-  // Power toggle (the gimmick)
-  document.getElementById("tv-power").addEventListener("click", () => {
-    setTvOn(!tvOn);
-    document.getElementById("tv-power-label").textContent = tvOn ? "On" : "Power";
-    // If the TV was hidden, turning power on also reveals it
-    if (tvOn && !tvContainer.visible) { setTvVisible(true); updateTvCycleLabel(); }
-  });
-
-  // Keep the cycle label honest after URL-driven init
-  assetsReady.then(updateTvCycleLabel);
-
-  // "Show in your space" → QR modal
+  // "Show in your space" → QR modal (desktop only — mobile launches AR)
   document.getElementById("ar-link-desktop").addEventListener("click", showQR);
 }
+
+// ─── Shared controls (wired on both desktop and mobile) ───────────────────
+document.querySelectorAll(".swatch").forEach((btn) => {
+  btn.addEventListener("click", () => setColor(btn.dataset.color));
+});
+
+// TV cycle: off → 40 → 50 → 60 → 70 → off
+const TV_STATES = ["off", "40", "50", "60", "70"];
+function cycleTv() {
+  const now = tvContainer.visible ? currentTvSize : "off";
+  const next = TV_STATES[(TV_STATES.indexOf(now) + 1) % TV_STATES.length];
+  if (next === "off") {
+    setTvVisible(false);
+  } else {
+    setTvSize(next);
+    if (!tvContainer.visible) setTvVisible(true);
+  }
+  updateTvCycleLabel();
+}
+function updateTvCycleLabel() {
+  const pressed = String(tvContainer.visible);
+  document.querySelectorAll("[data-tv-cycle]").forEach((b) => {
+    b.setAttribute("aria-pressed", pressed);
+  });
+  const label = tvContainer.visible ? `${currentTvSize}" TV` : "TV hidden";
+  document.querySelectorAll("[data-tv-label]").forEach((el) => {
+    el.textContent = label;
+  });
+}
+document.querySelectorAll("[data-tv-cycle]").forEach((btn) =>
+  btn.addEventListener("click", cycleTv),
+);
+
+// Power toggle (the gimmick)
+function togglePower() {
+  setTvOn(!tvOn);
+  document.querySelectorAll("[data-tv-power-label]").forEach((el) => {
+    el.textContent = tvOn ? "On" : "Power";
+  });
+  if (tvOn && !tvContainer.visible) { setTvVisible(true); updateTvCycleLabel(); }
+}
+document.querySelectorAll("[data-tv-power]").forEach((btn) =>
+  btn.addEventListener("click", togglePower),
+);
+
+// Keep labels honest after URL-driven init
+assetsReady.then(updateTvCycleLabel);
 
 // ─── QR modal (desktop) ───────────────────────────────────────────────────
 // Encode a URL that, when opened on a phone, jumps straight to AR with the

@@ -126,6 +126,27 @@
     .mobile .eyebrow{margin:0}
     .mobile h1.title{font-size:42px}
     .mobile .price{margin-top:6px}
+    .mobile .colors{margin-top:20px}
+    .mobile .colors-row{display:flex;gap:14px}
+    .mobile .colors .color-name{margin-top:10px}
+    .mobile .tv-controls{
+      display:flex;gap:8px;margin-top:20px;
+    }
+    .mobile .tv-controls button{
+      flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      background:transparent;border:1px solid var(--ink-10);border-radius:999px;
+      padding:12px 14px;font:inherit;font-size:12px;letter-spacing:.04em;
+      text-transform:uppercase;color:var(--ink);cursor:pointer;
+    }
+    .mobile .tv-controls button[aria-pressed="false"]{color:var(--ink-65)}
+    .mobile .tv-controls .dot{
+      width:7px;height:7px;border-radius:999px;background:var(--ink);
+      transition:background .15s;
+    }
+    .mobile .tv-controls button[aria-pressed="false"] .dot{
+      background:transparent;box-shadow:inset 0 0 0 1.4px var(--ink-65);
+    }
+    .mobile .tv-controls .bolt{font-size:13px;line-height:1;width:13px;text-align:center}
     .mobile .spacer{flex:1;min-height:24px}
     .mobile .ar-cta{
       appearance:none;width:100%;background:var(--ink);color:#fff;border:0;padding:20px 18px;cursor:pointer;
@@ -191,11 +212,11 @@
     <section class="stage" aria-label="3D preview">
       <canvas id="viewer"></canvas>
       <div class="stage-overlay">
-        <button id="tv-cycle" type="button" aria-pressed="true" title="Click to change TV size or hide">
-          <span class="dot"></span><span id="tv-label">50" TV</span>
+        <button type="button" aria-pressed="true" data-tv-cycle title="Click to change TV size or hide">
+          <span class="dot"></span><span data-tv-label>50" TV</span>
         </button>
-        <button id="tv-power" type="button" aria-pressed="false" title="Turn the TV on">
-          <span class="bolt">⏻</span><span id="tv-power-label">Power</span>
+        <button type="button" aria-pressed="false" data-tv-power title="Turn the TV on">
+          <span class="bolt">⏻</span><span data-tv-power-label>Power</span>
         </button>
         <span>Drag to rotate</span>
       </div>
@@ -213,7 +234,7 @@
           <button class="swatch" data-color="apricot" style="background:#e89a62" aria-selected="false" title="Apricot"></button>
           <button class="swatch" data-color="chrome" style="background:linear-gradient(135deg,#fafafa 0%,#d6d8db 35%,#7a7d82 55%,#d6d8db 75%,#fafafa 100%)" aria-selected="false" title="Chrome"></button>
         </div>
-        <div class="color-name" id="color-name">Ultra Marine</div>
+        <div class="color-name" data-color-name>Ultra Marine</div>
       </div>
 
       <p class="lede">A functional TV stand on wheels with soft, curved lines that contrast its sturdy steel construction. Roll it from one room to another. Includes wheels, VESA-kit and mounting kit.</p>
@@ -243,6 +264,25 @@
       <div class="eyebrow">Pipe Series · Stands w/ Wheels</div>
       <h1 class="title">Moon Rollin'<span class="variant">Ultra Marine</span></h1>
       <div class="price">€340,00 EUR</div>
+
+      <div class="colors">
+        <div class="colors-row" role="listbox" aria-label="Color">
+          <button class="swatch" data-color="ultra-marine" style="background:#1d40b3" aria-selected="true" title="Ultra Marine"></button>
+          <button class="swatch" data-color="bubble-gum" style="background:#f4a8b8" aria-selected="false" title="Bubble Gum"></button>
+          <button class="swatch" data-color="apricot" style="background:#e89a62" aria-selected="false" title="Apricot"></button>
+          <button class="swatch" data-color="chrome" style="background:linear-gradient(135deg,#fafafa 0%,#d6d8db 35%,#7a7d82 55%,#d6d8db 75%,#fafafa 100%)" aria-selected="false" title="Chrome"></button>
+        </div>
+        <div class="color-name" data-color-name>Ultra Marine</div>
+      </div>
+
+      <div class="tv-controls">
+        <button type="button" aria-pressed="true" data-tv-cycle>
+          <span class="dot"></span><span data-tv-label>50" TV</span>
+        </button>
+        <button type="button" aria-pressed="false" data-tv-power>
+          <span class="bolt">⏻</span><span data-tv-power-label>Power</span>
+        </button>
+      </div>
     </div>
     <div class="spacer"></div>
     <button class="ar-cta" id="ar-link-mobile" type="button">
