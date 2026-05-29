@@ -28,6 +28,9 @@ const STRUCTURE_MAT_NAME = "UltraMarine.Structure.001";
 const texLoader = new THREE.TextureLoader();
 function loadTex(path, { srgb = false } = {}) {
   const t = texLoader.load(path);
+  // Pedestal Studio's atlases are authored to glTF UV convention (bottom-left
+  // origin), so we don't flip them on load. flipY = true produced a clearly
+  // mangled VESA strip area.
   t.flipY = false;
   t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
   return t;
@@ -306,6 +309,11 @@ function setColor(key) {
   if (structureMat) {
     structureMat.map = TEX.bodyBase[key];
     structureMat.aoMap = TEX.bodyAo;
+    // The base colour maps already encode some self-shadowing, and Three.js
+    // applies aoMap multiplicatively on top — at intensity 1.0 the lower
+    // pipe bands ended up looking maroon. Half-strength reads true to the
+    // Pedestal renders.
+    structureMat.aoMapIntensity = 0.5;
     if (isChrome) {
       structureMat.metalnessMap = TEX.bodyChromeMet;
       structureMat.roughnessMap = TEX.bodyChromeRgh;
@@ -313,9 +321,6 @@ function setColor(key) {
       structureMat.metalnessMap = TEX.bodyMatteMet;
       structureMat.roughnessMap = null;
     }
-    // Scalar multipliers — base maps already encode the look, so use 1.0 and
-    // let the metalness/roughness maps shape it. Roughness scalar leans matte
-    // for non-chrome to soften lighting bounce.
     structureMat.metalness = 1.0;
     structureMat.roughness = isChrome ? 1.0 : 0.85;
     structureMat.color.setHex(0xffffff);
