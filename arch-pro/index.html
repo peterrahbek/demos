@@ -13,10 +13,8 @@
   :root {
     --color-ink: #212121;
     --color-ink-65: rgba(33, 33, 33, 0.65);
-    --color-ink-45: rgba(33, 33, 33, 0.45);
     --color-ink-15: rgba(33, 33, 33, 0.15);
     --color-ink-10: rgba(33, 33, 33, 0.10);
-    --color-ink-05: rgba(33, 33, 33, 0.05);
     --color-blue: rgb(10, 74, 253);
     --color-blue-hover: rgb(0, 56, 123);
     --bg: rgb(250, 250, 250);
@@ -35,97 +33,67 @@
   }
 
   header.site {
-    padding: 28px 32px;
+    padding: 24px 32px;
     border-bottom: 1px solid var(--color-ink-10);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    max-width: 1400px;
+    max-width: 1200px;
     margin: 0 auto;
   }
   .logo {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
-    letter-spacing: -0.01em;
   }
   .logo sup {
     font-size: 0.45em;
     vertical-align: super;
     font-weight: 400;
-    margin-left: 0.05em;
   }
   .header-meta {
     font-size: 13px;
     color: var(--color-ink-65);
-    letter-spacing: 0.01em;
   }
 
   main {
-    max-width: 1080px;
+    max-width: 920px;
     margin: 0 auto;
-    padding: 80px 32px 120px;
-  }
-
-  .eyebrow {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--color-ink-65);
-    margin-bottom: 28px;
+    padding: 72px 32px 96px;
   }
 
   h1.hero {
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 72px;
+    font-size: 56px;
     line-height: 1.0;
     letter-spacing: -0.04em;
-    margin-bottom: 40px;
+    margin-bottom: 12px;
   }
-
-  .intro {
-    font-size: 19px;
-    line-height: 1.55;
-    color: var(--color-ink);
-    max-width: 720px;
-    margin-bottom: 80px;
-  }
-  .intro a {
-    color: var(--color-blue);
-    text-decoration: none;
-    border-bottom: 1px solid var(--color-blue);
-  }
-
-  .section-label {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+  .subhead {
+    font-size: 17px;
     color: var(--color-ink-65);
-    margin-bottom: 32px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--color-ink-15);
+    margin-bottom: 64px;
   }
 
   .versions {
     display: flex;
     flex-direction: column;
     gap: 0;
+    border-top: 1px solid var(--color-ink-15);
   }
+
   .version {
     display: grid;
-    grid-template-columns: 120px 1fr auto;
-    gap: 40px;
-    padding: 40px 0;
-    border-bottom: 1px solid var(--color-ink-10);
-    align-items: start;
+    grid-template-columns: 80px 1fr auto;
+    gap: 32px;
+    padding: 32px 0;
+    border-bottom: 1px solid var(--color-ink-15);
+    align-items: center;
   }
-  .version:last-child { border-bottom: none; }
 
   .version-tag {
     font-family: var(--font-display);
-    font-size: 56px;
+    font-size: 40px;
     font-weight: 400;
     letter-spacing: -0.04em;
     color: var(--color-ink);
@@ -134,66 +102,33 @@
   .version.is-latest .version-tag {
     color: var(--color-blue);
   }
-  .version-tag-sub {
-    font-family: var(--font-sans);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-ink-65);
-    margin-top: 8px;
-    display: block;
-  }
-  .version.is-latest .version-tag-sub {
-    color: var(--color-blue);
-  }
 
   .version-body h2 {
-    font-size: 24px;
+    font-size: 19px;
     font-weight: 500;
     letter-spacing: -0.02em;
-    line-height: 1.2;
-    margin-bottom: 12px;
+    line-height: 1.25;
+    margin-bottom: 4px;
   }
-  .version-body p {
-    font-size: 15px;
-    line-height: 1.5;
+  .version-meta {
+    font-size: 13px;
     color: var(--color-ink-65);
-    max-width: 540px;
-    margin-bottom: 16px;
-  }
-  .version-body ul {
-    list-style: none;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .version-body ul li {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    color: var(--color-ink-65);
-    background: var(--color-ink-05);
-    padding: 4px 10px;
-    border-radius: 2px;
+    letter-spacing: 0;
   }
 
-  .version-cta {
-    align-self: center;
-  }
   .open-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.6rem;
-    height: 56px;
-    padding: 0 28px;
+    height: 48px;
+    padding: 0 22px;
     background: var(--color-ink);
     color: white;
     border: none;
     border-radius: 4px;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     text-decoration: none;
     font-family: inherit;
     transition: background 0.15s;
@@ -206,59 +141,19 @@
   .open-btn:hover { background: rgb(57, 57, 57); }
   .open-btn:hover::after { transform: translateX(3px); }
 
-  .version.is-latest .open-btn {
-    background: var(--color-blue);
-  }
-  .version.is-latest .open-btn:hover {
-    background: var(--color-blue-hover);
-  }
-
-  .talking-points {
-    margin-top: 80px;
-    padding: 40px;
-    background: var(--color-ink);
-    color: white;
-    border-radius: 4px;
-  }
-  .talking-points h3 {
-    font-family: var(--font-display);
-    font-size: 32px;
-    font-weight: 400;
-    letter-spacing: -0.04em;
-    line-height: 1.1;
-    margin-bottom: 24px;
-  }
-  .talking-points-list {
-    list-style: none;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px 40px;
-  }
-  .talking-points-list li {
-    font-size: 14px;
-    line-height: 1.55;
-    color: rgba(255,255,255,0.85);
-    padding-left: 20px;
-    position: relative;
-  }
-  .talking-points-list li::before {
-    content: '→';
-    position: absolute;
-    left: 0;
-    color: rgb(172, 206, 246);
-  }
+  .version.is-latest .open-btn { background: var(--color-blue); }
+  .version.is-latest .open-btn:hover { background: var(--color-blue-hover); }
 
   footer {
-    max-width: 1080px;
+    max-width: 920px;
     margin: 0 auto;
-    padding: 32px;
-    border-top: 1px solid var(--color-ink-10);
+    padding: 28px 32px;
     font-size: 13px;
     color: var(--color-ink-65);
     display: flex;
     justify-content: space-between;
-    flex-wrap: wrap;
     gap: 16px;
+    border-top: 1px solid var(--color-ink-10);
   }
   footer a {
     color: var(--color-ink);
@@ -266,18 +161,20 @@
     text-underline-offset: 2px;
   }
 
-  @media (max-width: 720px) {
-    h1.hero { font-size: 44px; }
-    main { padding: 48px 24px 80px; }
+  @media (max-width: 640px) {
+    h1.hero { font-size: 40px; }
+    main { padding: 48px 24px 64px; }
     .version {
-      grid-template-columns: 1fr;
-      gap: 16px;
+      grid-template-columns: 60px 1fr;
+      grid-template-rows: auto auto;
+      gap: 16px 20px;
     }
-    .version-tag { font-size: 36px; }
-    .version-cta { align-self: start; }
-    .open-btn { width: 100%; justify-content: center; }
-    .talking-points-list { grid-template-columns: 1fr; }
-    .intro { font-size: 17px; margin-bottom: 56px; }
+    .version-tag { font-size: 32px; }
+    .open-btn {
+      grid-column: 1 / -1;
+      width: 100%;
+      justify-content: center;
+    }
   }
 </style>
 </head>
@@ -285,121 +182,48 @@
 
 <header class="site">
   <div class="logo">pedestal<sup>®</sup></div>
-  <div class="header-meta">Internal prototype · Not customer facing</div>
+  <div class="header-meta">Arch PRO · Prototype</div>
 </header>
 
 <main>
-  <div class="eyebrow">Arch PRO · Product page</div>
-  <h1 class="hero">Three prototypes,<br>one decision.</h1>
-  <p class="intro">
-    Working prototypes of the Arch PRO product page exploring how a multi-configurable
-    contract stand should be presented. All three are clickable and live in the browser,
-    no design tool required. The latest version applies Pedestal's design tokens
-    (typography, colour, spacing) and includes the below-fold sections.
-  </p>
-
-  <div class="section-label">Iterations · most recent first</div>
+  <h1 class="hero">Three directions.</h1>
+  <p class="subhead">Open each, then pick one.</p>
 
   <div class="versions">
 
     <article class="version is-latest">
-      <div class="version-tag">
-        v3
-        <span class="version-tag-sub">Latest</span>
-      </div>
+      <div class="version-tag">v3</div>
       <div class="version-body">
-        <h2>Pedestal-styled · bottom-strip + side-panel cart</h2>
-        <p>
-          Matches the existing Pedestal Rover and Power Bar pages — image row across the
-          top, compact 4-column configurator strip at the bottom, side-panel cart drawer
-          that doesn't block the page so the 3D model keeps updating live as you reconfigure.
-          Below the fold: Pro Resources, Editorial, Environment, Details, Footer.
-        </p>
-        <ul>
-          <li>Image row hero</li>
-          <li>4-column config strip</li>
-          <li>Non-blocking cart drawer</li>
-          <li>Pedestal design tokens</li>
-          <li>Below-fold content</li>
-          <li>Share configuration</li>
-        </ul>
+        <h2>Bottom-strip configurator</h2>
+        <div class="version-meta">Image row on top · 4-column config strip · cart drawer</div>
       </div>
-      <div class="version-cta">
-        <a class="open-btn" href="latest.html">Open</a>
-      </div>
+      <a class="open-btn" href="latest.html">Open</a>
     </article>
 
     <article class="version">
-      <div class="version-tag">
-        v2
-        <span class="version-tag-sub">Snapshot</span>
-      </div>
+      <div class="version-tag">v2</div>
       <div class="version-body">
-        <h2>Pedestal-styled · sliding configure drawer</h2>
-        <p>
-          Adopts Pedestal's typography and tone but with configuration tucked into a
-          right-side drawer that slides in when the user clicks "Configure &amp; buy".
-          More immersive media area; smaller initial cognitive load. Useful contrast point
-          for the discussion — does the configurator-as-drawer feel right or is the bottom
-          strip the better match for the brand?
-        </p>
-        <ul>
-          <li>Pedestal typography</li>
-          <li>Slide-in configure drawer</li>
-          <li>Large media area</li>
-          <li>Pro Resources block</li>
-        </ul>
+        <h2>Sliding configure drawer</h2>
+        <div class="version-meta">Large media area · configuration in a right-side drawer</div>
       </div>
-      <div class="version-cta">
-        <a class="open-btn" href="configdrawer.html">Open</a>
-      </div>
+      <a class="open-btn" href="configdrawer.html">Open</a>
     </article>
 
     <article class="version">
-      <div class="version-tag">
-        v1
-        <span class="version-tag-sub">Baseline</span>
-      </div>
+      <div class="version-tag">v1</div>
       <div class="version-body">
-        <h2>Generic two-column PDP</h2>
-        <p>
-          The starting point. Standard product page pattern — media on the left, product
-          info and configuration inline on the right. Captures the core interactions
-          (URL state, conditional cover, AR-ready model viewer) before any brand
-          opinion was layered on. Useful as the "before" frame for showing distance travelled.
-        </p>
-        <ul>
-          <li>Two-column layout</li>
-          <li>Inline configuration</li>
-          <li>URL state encoding</li>
-          <li>3D + AR ready</li>
-        </ul>
+        <h2>Two-column PDP</h2>
+        <div class="version-meta">Standard layout · media left, configuration right</div>
       </div>
-      <div class="version-cta">
-        <a class="open-btn" href="baseline.html">Open</a>
-      </div>
+      <a class="open-btn" href="baseline.html">Open</a>
     </article>
 
-  </div>
-
-  <div class="talking-points">
-    <h3>Points to take to the room</h3>
-    <ul class="talking-points-list">
-      <li>Bottom-strip vs. drawer-driven configuration — which fits Pedestal's voice and existing patterns better?</li>
-      <li>15 SKUs at launch (3 frame × 4 cover + 3 whiteboard + 3 naked) — does a configurator buy us anything beyond visual fidelity?</li>
-      <li>"No cover" as a 4th cover option, plus upsells only when Naked is selected — sensible product logic?</li>
-      <li>Pro Resources content offer instead of an RFQ form — agreed direction for B2B lead-gen?</li>
-      <li>Building model-viewer + Blender in-house instead of subscribing to Fibble — confirm with engineering?</li>
-      <li>Audience scoping inside Pedestal Studio — are we comfortable extending Studio for contract products at all?</li>
-    </ul>
   </div>
 </main>
 
 <footer>
-  <span>Prototype iterations · last updated <span id="updated">today</span></span>
-  <span>
-    <a href="https://github.com/peterrahbek/demos/tree/main/arch-pro" target="_blank" rel="noopener">Source on GitHub</a>
-  </span>
+  <span>Last updated <span id="updated">today</span></span>
+  <a href="https://github.com/peterrahbek/demos/tree/main/arch-pro" target="_blank" rel="noopener">Source</a>
 </footer>
 
 <script>
