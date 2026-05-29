@@ -220,6 +220,11 @@ const tvCtx = tvCanvas.getContext("2d");
 const tvTexture = new THREE.CanvasTexture(tvCanvas);
 tvTexture.colorSpace = THREE.SRGBColorSpace;
 
+const pedestalWordmark = new Image();
+let wordmarkReady = false;
+pedestalWordmark.onload = () => { wordmarkReady = true; drawTvFrame(tvAnimTime || 0); };
+pedestalWordmark.src = "./assets/Pedestal_Wordmark_white.svg";
+
 let tvAnimTime = 0;
 function drawTvFrame(t) {
   const w = tvCanvas.width, h = tvCanvas.height;
@@ -236,17 +241,25 @@ function drawTvFrame(t) {
   tvCtx.fillStyle = "#000";
   for (let y = 0; y < h; y += 4) tvCtx.fillRect(0, y, w, 1);
   tvCtx.globalAlpha = 1;
-  // Pedestal wordmark, breathing
+  // Pedestal wordmark SVG, breathing
   const breath = 1 + 0.02 * Math.sin(t * 1.8);
   tvCtx.save();
   tvCtx.translate(w/2, h/2);
   tvCtx.scale(breath, breath);
-  tvCtx.font = `600 ${Math.floor(h * 0.22)}px "Inter","Helvetica Neue",Arial,sans-serif`;
-  tvCtx.textAlign = "center";
-  tvCtx.textBaseline = "middle";
-  tvCtx.fillStyle = "rgba(255,255,255,0.92)";
-  tvCtx.letterSpacing = "0.2em";
-  tvCtx.fillText("PEDESTAL", 0, 0);
+  if (wordmarkReady) {
+    const ar = pedestalWordmark.naturalWidth / pedestalWordmark.naturalHeight;
+    const mh = h * 0.30;
+    const mw = mh * ar;
+    tvCtx.globalAlpha = 0.95;
+    tvCtx.drawImage(pedestalWordmark, -mw/2, -mh/2, mw, mh);
+    tvCtx.globalAlpha = 1;
+  } else {
+    tvCtx.font = `600 ${Math.floor(h * 0.22)}px "Inter","Helvetica Neue",Arial,sans-serif`;
+    tvCtx.textAlign = "center";
+    tvCtx.textBaseline = "middle";
+    tvCtx.fillStyle = "rgba(255,255,255,0.92)";
+    tvCtx.fillText("PEDESTAL", 0, 0);
+  }
   tvCtx.restore();
   // Lower-third caption
   tvCtx.font = `500 ${Math.floor(h * 0.04)}px Inter, Arial, sans-serif`;
@@ -310,10 +323,9 @@ function setColor(key) {
     structureMat.map = TEX.bodyBase[key];
     structureMat.aoMap = TEX.bodyAo;
     // The base colour maps already encode some self-shadowing, and Three.js
-    // applies aoMap multiplicatively on top — at intensity 1.0 the lower
-    // pipe bands ended up looking maroon. Half-strength reads true to the
-    // Pedestal renders.
-    structureMat.aoMapIntensity = 0.5;
+    // applies aoMap multiplicatively on top. Dialled all the way down so the
+    // bottom cross-bar and corner joints stop reading as discoloured.
+    structureMat.aoMapIntensity = 0.25;
     if (isChrome) {
       structureMat.metalnessMap = TEX.bodyChromeMet;
       structureMat.roughnessMap = TEX.bodyChromeRgh;
@@ -412,13 +424,16 @@ if (!isMobile) {
   const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 50);
   camera.position.set(2.4, 1.05, 2.1);
 
-  const keyL = new THREE.DirectionalLight(0xfff5e8, 1.7);
-  keyL.position.set(2.5, 3.5, 2);
+  const keyL = new THREE.DirectionalLight(0xfff5e8, 1.4);
+  keyL.position.set(2.5, 4.5, 2);   // more overhead so the upper body
+                                    // doesn't cast a hard band on the
+                                    // bottom cross-bar
   keyL.castShadow = true;
-  keyL.shadow.mapSize.set(1024, 1024);
-  Object.assign(keyL.shadow.camera, { near: 0.5, far: 8, left: -1.5, right: 1.5, top: 1.5, bottom: -1.5 });
+  keyL.shadow.mapSize.set(2048, 2048);
+  Object.assign(keyL.shadow.camera, { near: 0.5, far: 10, left: -1.5, right: 1.5, top: 1.5, bottom: -1.5 });
   keyL.shadow.bias = -0.0002;
   keyL.shadow.normalBias = 0.02;
+  keyL.shadow.radius = 5;           // softer PCF blur
   scene.add(keyL);
   scene.add(new THREE.AmbientLight(0xc8ddff, 0.35));
   const rim = new THREE.DirectionalLight(0xa9b4c8, 0.55);
