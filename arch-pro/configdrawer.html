@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Arch PRO — Prototype</title>
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --ink: #111111;
+    --ink-soft: #555555;
+    --ink-mute: #888888;
+    --hair: #ececec;
+    --hair-strong: #d4d4d4;
+    --warm-bg: #f7f4ed;
+    --warm-border: #e8dfc7;
+    --warm-ink: #6b4f12;
+    --radius-sm: 2px;
+    --radius-md: 4px;
+
+    --charcoal: #36454F;
+    --pearl: #F0EBE3;
+    --ultra-marine: #2A3E91;
+
+    --drawer-w: 460px;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body.drawer-open { overflow: hidden; }
+
+  /* Prototype banner */
+  .prototype-banner {
+    background: var(--warm-bg);
+    border-bottom: 1px solid var(--warm-border);
+    padding: 0.5rem 1rem;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--warm-ink);
+  }
+  .prototype-banner code {
+    background: rgba(0,0,0,0.05);
+    padding: 0.05rem 0.35rem;
+    border-radius: 2px;
+    font-size: 0.74rem;
+  }
+
+  .region-bar {
+    background: #fafafa;
+    border-bottom: 1px solid var(--hair);
+    padding: 0.5rem 1.5rem;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .region-bar a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* Header */
+  header.site {
+    background: white;
+    border-bottom: 1px solid var(--hair);
+    padding: 1.1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .logo {
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    font-size: 0.95rem;
+  }
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    font-size: 0.88rem;
+  }
+  .nav-links a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .header-right {
+    display: flex;
+    gap: 1.2rem;
+    font-size: 0.88rem;
+  }
+  .header-right a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  /* Breadcrumb */
+  .breadcrumb {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.25rem 2rem 0;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+  .breadcrumb a {
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+
+  /* Media area — top hero */
+  .media-area {
+    position: relative;
+    max-width: 1400px;
+    margin: 1rem auto 0;
+    padding: 0 2rem;
+  }
+
+  .media-stage {
+    position: relative;
+    background: #f6f6f6;
+  }
+
+  .media-toggle {
+    position: absolute;
+    top: 1.2rem;
+    left: 1.2rem;
+    background: white;
+    border: 1px solid var(--hair);
+    display: flex;
+    z-index: 2;
+  }
+  .media-toggle button {
+    border: none;
+    background: transparent;
+    padding: 0.5rem 0.95rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+    color: var(--ink-soft);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    border-right: 1px solid var(--hair);
+    font-family: inherit;
+  }
+  .media-toggle button:last-child { border-right: none; }
+  .media-toggle button.active {
+    background: var(--ink);
+    color: white;
+  }
+
+  model-viewer {
+    width: 100%;
+    height: 720px;
+    --poster-color: #f6f6f6;
+  }
+
+  .ar-button-floating {
+    position: absolute;
+    bottom: 1.2rem;
+    right: 1.2rem;
+    background: white;
+    border: 1px solid var(--hair);
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--ink);
+    z-index: 2;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: inherit;
+  }
+  .ar-button-floating::before {
+    content: '◇';
+    font-size: 0.9rem;
+  }
+
+  .image-fallback {
+    display: none;
+    background: #f6f6f6;
+    height: 720px;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-mute);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 2rem;
+  }
+  .image-fallback.active { display: flex; }
+
+  /* Frame pills row — sits below media */
+  .pill-row {
+    max-width: 1400px;
+    margin: 1.5rem auto 0;
+    padding: 0 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+  }
+  .pill-row-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    font-weight: 600;
+  }
+  .pill-group {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 1.1rem 0.55rem 0.55rem;
+    border: 1px solid var(--hair-strong);
+    border-radius: 999px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--ink);
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .pill:hover { border-color: var(--ink); }
+  .pill.selected {
+    background: var(--ink);
+    color: white;
+    border-color: var(--ink);
+  }
+  .pill-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.1);
+    flex-shrink: 0;
+  }
+  .pill-dot[data-color="charcoal"] { background: var(--charcoal); }
+  .pill-dot[data-color="pearl"] { background: var(--pearl); }
+  .pill-dot[data-color="ultra-marine"] { background: var(--ultra-marine); }
+
+  /* Product strip */
+  .product-strip {
+    max-width: 1400px;
+    margin: 3rem auto 0;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+    align-items: end;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid var(--hair);
+  }
+  .product-strip h1 {
+    font-size: 2.5rem;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    line-height: 1.05;
+    margin-bottom: 0.5rem;
+  }
+  .product-strip .tagline {
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+    max-width: 540px;
+  }
+  .strip-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.6rem;
+  }
+  .strip-price {
+    font-size: 1.2rem;
+    font-weight: 500;
+  }
+  .strip-price .vat {
+    color: var(--ink-mute);
+    font-weight: 400;
+    font-size: 0.85rem;
+    margin-left: 0.4rem;
+  }
+  .cta-primary {
+    background: var(--ink);
+    color: white;
+    border: none;
+    padding: 1.1rem 2rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    transition: background 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .cta-primary:hover { background: #2a2a2a; }
+  .cta-primary::after {
+    content: '→';
+    transition: transform 0.2s;
+  }
+  .cta-primary:hover::after { transform: translateX(3px); }
+
+  /* Pro Resources */
+  .pro-resources {
+    padding: 5rem 2rem;
+    background: var(--ink);
+    color: white;
+    margin-top: 4rem;
+  }
+  .pro-resources-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 4rem;
+    align-items: center;
+  }
+  .pro-resources-eyebrow {
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 0.75rem;
+  }
+  .pro-resources h2 {
+    font-size: 2rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    letter-spacing: -0.015em;
+  }
+  .pro-resources p {
+    color: #bababa;
+    font-size: 1rem;
+  }
+  .pro-resources-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .pro-resources-list {
+    list-style: none;
+    color: #d8d8d8;
+    font-size: 0.85rem;
+  }
+  .pro-resources-list li {
+    padding: 0.3rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .pro-resources-list li::before {
+    content: '→';
+    color: white;
+  }
+  .pro-resources button {
+    background: white;
+    color: var(--ink);
+    border: none;
+    padding: 1.1rem 2rem;
+    font-size: 0.82rem;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+  }
+  .pro-resources button:hover { background: #f0f0f0; }
+
+  footer {
+    background: #fafafa;
+    padding: 3rem 2rem;
+    border-top: 1px solid var(--hair);
+    color: var(--ink-mute);
+    font-size: 0.82rem;
+    text-align: center;
+  }
+
+  /* ============== DRAWER ============== */
+  .drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 50;
+  }
+  .drawer-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: var(--drawer-w);
+    max-width: 100vw;
+    background: white;
+    box-shadow: -20px 0 60px rgba(0,0,0,0.15);
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+  }
+  .drawer.open { transform: translateX(0); }
+
+  .drawer-header {
+    padding: 1.5rem 1.75rem;
+    border-bottom: 1px solid var(--hair);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .drawer-title {
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .drawer-close {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0.4rem;
+    line-height: 1;
+    color: var(--ink);
+    font-family: inherit;
+  }
+
+  .drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.75rem;
+  }
+
+  .drawer-product-header {
+    margin-bottom: 1.5rem;
+  }
+  .drawer-product-header h2 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.25rem;
+  }
+  .drawer-product-header .sub {
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+  }
+
+  .drawer-current-frame {
+    background: #fafafa;
+    border: 1px solid var(--hair);
+    border-radius: var(--radius-md);
+    padding: 0.8rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.75rem;
+    font-size: 0.85rem;
+  }
+  .drawer-current-frame .dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.1);
+    flex-shrink: 0;
+  }
+  .drawer-current-frame .dot[data-color="charcoal"] { background: var(--charcoal); }
+  .drawer-current-frame .dot[data-color="pearl"] { background: var(--pearl); }
+  .drawer-current-frame .dot[data-color="ultra-marine"] { background: var(--ultra-marine); }
+  .drawer-current-frame .lbl {
+    flex: 1;
+  }
+  .drawer-current-frame .edit-hint {
+    font-size: 0.74rem;
+    color: var(--ink-mute);
+  }
+
+  .field {
+    margin-bottom: 2rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    transition: background 0.3s, border-color 0.3s, padding 0.3s, margin 0.3s;
+  }
+  .field-label {
+    display: flex;
+    align-items: baseline;
+    font-size: 0.78rem;
+    color: var(--ink);
+    margin-bottom: 0.9rem;
+    font-weight: 600;
+    gap: 0.5rem;
+  }
+  .selected-value {
+    font-weight: 400;
+    color: var(--ink-soft);
+  }
+
+  /* Radio cards (back side) */
+  .radio-cards {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .radio-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border: 1px solid var(--hair-strong);
+    border-radius: var(--radius-md);
+    padding: 0.95rem 1.1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: white;
+  }
+  .radio-card:hover { border-color: var(--ink); }
+  .radio-card.selected {
+    border-color: var(--ink);
+    border-width: 1.5px;
+    padding: calc(0.95rem - 0.5px) calc(1.1rem - 0.5px);
+  }
+  .radio-card input { display: none; }
+  .radio-card-icon {
+    width: 32px;
+    height: 32px;
+    background: #f3f3f3;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+  }
+  .radio-card-text { flex: 1; }
+  .radio-card strong {
+    display: block;
+    font-weight: 500;
+    font-size: 0.92rem;
+    margin-bottom: 0.05rem;
+  }
+  .radio-card span {
+    font-size: 0.76rem;
+    color: var(--ink-mute);
+  }
+
+  /* Cover swatches (in drawer) */
+  .swatches {
+    display: flex;
+    gap: 1.1rem;
+  }
+  .swatch-wrap {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    transition: opacity 0.25s, filter 0.25s;
+    font-family: inherit;
+  }
+  .swatch {
+    display: block;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.08);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .swatch[data-color="charcoal"] { background: var(--charcoal); }
+  .swatch[data-color="pearl"] { background: var(--pearl); }
+  .swatch[data-color="ultra-marine"] { background: var(--ultra-marine); }
+  .swatch-wrap:hover .swatch { transform: scale(1.06); }
+  .swatch-wrap.selected .swatch {
+    box-shadow: 0 0 0 2px white, 0 0 0 3px var(--ink);
+  }
+  .swatch-label {
+    font-size: 0.74rem;
+    color: var(--ink-soft);
+  }
+  .swatch-wrap.selected .swatch-label {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* Disabled cover */
+  .field.disabled {
+    background: var(--warm-bg);
+    border-color: var(--warm-border);
+    padding: 1rem 1.1rem;
+    margin-left: -1.1rem;
+    margin-right: -1.1rem;
+    margin-bottom: 2rem;
+  }
+  .field.disabled .swatch-wrap {
+    pointer-events: none;
+    opacity: 0.4;
+    filter: grayscale(0.7);
+  }
+  .field.disabled .swatch-wrap.selected .swatch {
+    box-shadow: none;
+  }
+  .field.disabled .field-label {
+    color: var(--warm-ink);
+  }
+  .field.disabled .selected-value {
+    color: #b48d3a;
+    font-style: italic;
+  }
+  .field.disabled .swatch-label {
+    color: var(--warm-ink);
+  }
+
+  .helper-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--warm-ink);
+    margin-top: 0;
+    max-height: 0;
+    overflow: hidden;
+    padding: 0;
+    opacity: 0;
+    transition: max-height 0.3s, opacity 0.25s, padding 0.3s, margin 0.3s;
+  }
+  .field.disabled .helper-text {
+    max-height: 60px;
+    margin-top: 0.9rem;
+    padding: 0.1rem 0;
+    opacity: 1;
+  }
+
+  /* Mounts inside drawer (when naked) */
+  .drawer-mounts {
+    display: none;
+    margin-bottom: 2rem;
+  }
+  .drawer-mounts.visible { display: block; }
+  .drawer-mounts h3 {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    margin-bottom: 0.85rem;
+  }
+  .drawer-mounts > p {
+    font-size: 0.8rem;
+    color: var(--ink-mute);
+    margin-bottom: 1rem;
+  }
+  .drawer-mount-list {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .mount-row {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.7rem;
+    border: 1px solid var(--hair);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .mount-row:hover { border-color: var(--ink); }
+  .mount-row-icon {
+    width: 44px;
+    height: 44px;
+    background: #f0f0f0;
+    flex-shrink: 0;
+  }
+  .mount-row-info { flex: 1; }
+  .mount-row-info strong {
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 500;
+  }
+  .mount-row-info span {
+    font-size: 0.74rem;
+    color: var(--ink-mute);
+  }
+  .mount-row-price {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .drawer-meta {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    padding: 1rem 0;
+    border-top: 1px solid var(--hair);
+    margin-bottom: 1.5rem;
+  }
+  .drawer-meta div {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+  }
+
+  /* Drawer footer with totals + CTA */
+  .drawer-footer {
+    border-top: 1px solid var(--hair);
+    padding: 1.25rem 1.75rem;
+    background: white;
+  }
+  .drawer-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 1rem;
+  }
+  .drawer-total-label {
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .drawer-total-amount {
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+  .drawer-cta {
+    background: var(--ink);
+    color: white;
+    border: none;
+    padding: 1.1rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    width: 100%;
+    margin-bottom: 0.6rem;
+  }
+  .drawer-cta:hover { background: #2a2a2a; }
+  .drawer-share {
+    background: white;
+    color: var(--ink);
+    border: 1px solid var(--hair-strong);
+    padding: 0.95rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    width: 100%;
+  }
+  .drawer-share:hover { border-color: var(--ink); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: white;
+    padding: 0.85rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    opacity: 0;
+    transition: all 0.25s;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  }
+  .toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Responsive */
+  @media (max-width: 940px) {
+    model-viewer, .image-fallback { height: 460px; }
+    .product-strip {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      padding: 2rem 1rem 2rem;
+    }
+    .product-strip h1 { font-size: 1.9rem; }
+    .strip-cta {
+      align-items: flex-start;
+      width: 100%;
+    }
+    .cta-primary { width: 100%; justify-content: center; }
+    .pro-resources-inner {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    .pro-resources h2 { font-size: 1.5rem; }
+    .nav-links { display: none; }
+    :root { --drawer-w: 100vw; }
+  }
+</style>
+</head>
+<body>
+
+<div class="prototype-banner">
+  <strong>Prototype</strong> — placeholder 3D model (Khronos sample). Replace with Arch PRO <code>.glb</code> + <code>.usdz</code> for production.
+</div>
+
+<div class="region-bar">
+  Are you in the right place? <a href="#">Visit pedestal.com/dk</a>
+</div>
+
+<header class="site">
+  <div class="logo">PEDESTAL</div>
+  <nav>
+    <ul class="nav-links">
+      <li><a href="#">TV Stands</a></li>
+      <li><a href="#">Power</a></li>
+      <li><a href="#">Accessories</a></li>
+      <li><a href="#">Studio</a></li>
+      <li><a href="#">Pro</a></li>
+    </ul>
+  </nav>
+  <div class="header-right">
+    <a href="#">Search</a>
+    <a href="#" id="cart-link">Cart (0)</a>
+  </div>
+</header>
+
+<div class="breadcrumb">
+  <a href="#">Home</a> / <a href="#">TV Stands</a> / Arch PRO
+</div>
+
+<section class="media-area">
+  <div class="media-stage">
+    <div class="media-toggle">
+      <button class="toggle-btn" data-mode="image">Image</button>
+      <button class="toggle-btn active" data-mode="3d">3D</button>
+      <button class="toggle-btn" data-mode="video">Video</button>
+    </div>
+
+    <model-viewer
+      id="viewer"
+      src="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb"
+      ios-src="https://modelviewer.dev/shared-assets/models/Astronaut.usdz"
+      alt="Arch PRO"
+      camera-controls
+      touch-action="pan-y"
+      shadow-intensity="0.9"
+      exposure="1"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      ar-scale="auto"
+      camera-orbit="-30deg 75deg 1.6m"
+    >
+      <button slot="ar-button" class="ar-button-floating">View in AR</button>
+    </model-viewer>
+
+    <div class="image-fallback" id="image-fallback"></div>
+  </div>
+</section>
+
+<div class="pill-row">
+  <div class="pill-row-label">Frame color</div>
+  <div class="pill-group" id="frame-pills">
+    <button class="pill selected" data-value="charcoal">
+      <span class="pill-dot" data-color="charcoal"></span>
+      Charcoal
+    </button>
+    <button class="pill" data-value="pearl">
+      <span class="pill-dot" data-color="pearl"></span>
+      Pearl
+    </button>
+    <button class="pill" data-value="ultra-marine">
+      <span class="pill-dot" data-color="ultra-marine"></span>
+      Ultra Marine
+    </button>
+  </div>
+</div>
+
+<div class="product-strip">
+  <div>
+    <h1>Arch PRO</h1>
+    <p class="tagline">
+      A height-adjustable stand designed for offices, meeting rooms, classrooms and the public realm. Built in Denmark to last decades.
+    </p>
+  </div>
+  <div class="strip-cta">
+    <div class="strip-price">
+      <span id="strip-price-amount">from DKK 9,999</span>
+      <span class="vat">incl. VAT</span>
+    </div>
+    <button class="cta-primary" id="open-drawer">Configure &amp; buy</button>
+  </div>
+</div>
+
+<section class="pro-resources">
+  <div class="pro-resources-inner">
+    <div>
+      <div class="pro-resources-eyebrow">For specifiers</div>
+      <h2>Specifying Arch PRO for a project?</h2>
+      <p>Download our design guide, spec sheets, CAD &amp; BIM files, and 3D models — everything you need to bring Arch PRO into your next workspace, classroom or public space.</p>
+    </div>
+    <div class="pro-resources-cta">
+      <ul class="pro-resources-list">
+        <li>Design guide (PDF)</li>
+        <li>Technical specifications</li>
+        <li>CAD &amp; BIM files (.dwg, .rvt)</li>
+        <li>3D models (.glb, .usdz)</li>
+      </ul>
+      <button id="pro-btn">Get the pack</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  PEDESTAL · Designed in Copenhagen · Built to last
+</footer>
+
+<!-- DRAWER -->
+<div class="drawer-backdrop" id="drawer-backdrop"></div>
+
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-header">
+    <div class="drawer-title">Configure your Arch PRO</div>
+    <button class="drawer-close" id="drawer-close" aria-label="Close">✕</button>
+  </div>
+
+  <div class="drawer-body">
+    <div class="drawer-product-header">
+      <h2>Arch PRO</h2>
+      <div class="sub">Height-adjustable stand · Made in Denmark</div>
+    </div>
+
+    <div class="drawer-current-frame">
+      <span class="dot" id="drawer-frame-dot" data-color="charcoal"></span>
+      <span class="lbl">
+        Frame: <strong id="drawer-frame-label">Charcoal</strong>
+      </span>
+      <span class="edit-hint">change on page</span>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Back side</label>
+      <div class="radio-cards" id="back-cards">
+        <label class="radio-card selected" data-value="shelf">
+          <input type="radio" name="back" value="shelf" checked>
+          <span class="radio-card-icon">▭</span>
+          <span class="radio-card-text">
+            <strong>Custom shelf</strong>
+            <span>Devices, accessories, remotes</span>
+          </span>
+        </label>
+        <label class="radio-card" data-value="whiteboard">
+          <input type="radio" name="back" value="whiteboard">
+          <span class="radio-card-icon">▢</span>
+          <span class="radio-card-text">
+            <strong>Whiteboard</strong>
+            <span>Ideal for meeting rooms</span>
+          </span>
+        </label>
+        <label class="radio-card" data-value="naked">
+          <input type="radio" name="back" value="naked">
+          <span class="radio-card-icon">○</span>
+          <span class="radio-card-text">
+            <strong>Naked</strong>
+            <span>Combine with separately ordered mounts</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="field" id="cover-field">
+      <label class="field-label">
+        Cover
+        <span class="selected-value" id="cover-value">Charcoal</span>
+      </label>
+      <div class="swatches" id="cover-swatches">
+        <button class="swatch-wrap selected" data-value="charcoal">
+          <span class="swatch" data-color="charcoal"></span>
+          <span class="swatch-label">Charcoal</span>
+        </button>
+        <button class="swatch-wrap" data-value="pearl">
+          <span class="swatch" data-color="pearl"></span>
+          <span class="swatch-label">Pearl</span>
+        </button>
+        <button class="swatch-wrap" data-value="ultra-marine">
+          <span class="swatch" data-color="ultra-marine"></span>
+          <span class="swatch-label">Ultra Marine</span>
+        </button>
+      </div>
+      <div class="helper-text">Only available with custom shelf</div>
+    </div>
+
+    <div class="drawer-mounts" id="drawer-mounts">
+      <h3>Recommended mounts</h3>
+      <p>The Naked configuration is built to be paired with mounts. Add as needed.</p>
+      <div class="drawer-mount-list">
+        <div class="mount-row">
+          <span class="mount-row-icon"></span>
+          <span class="mount-row-info">
+            <strong>Mount A</strong>
+            <span>For screens 32-55"</span>
+          </span>
+          <span class="mount-row-price">DKK 1,299</span>
+        </div>
+        <div class="mount-row">
+          <span class="mount-row-icon"></span>
+          <span class="mount-row-info">
+            <strong>Mount B</strong>
+            <span>For screens 55-75"</span>
+          </span>
+          <span class="mount-row-price">DKK 1,799</span>
+        </div>
+        <div class="mount-row">
+          <span class="mount-row-icon"></span>
+          <span class="mount-row-info">
+            <strong>Mount C</strong>
+            <span>Tablets &amp; small whiteboards</span>
+          </span>
+          <span class="mount-row-price">DKK 899</span>
+        </div>
+        <div class="mount-row">
+          <span class="mount-row-icon"></span>
+          <span class="mount-row-info">
+            <strong>Mount D</strong>
+            <span>Heavy-duty universal</span>
+          </span>
+          <span class="mount-row-price">DKK 2,199</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="drawer-meta">
+      <div><span>Height adjustment</span><span>At assembly (120-180 cm)</span></div>
+      <div><span>Lead time</span><span>4-6 weeks</span></div>
+      <div><span>Warranty</span><span>5 years</span></div>
+    </div>
+  </div>
+
+  <div class="drawer-footer">
+    <div class="drawer-total">
+      <span class="drawer-total-label">Total</span>
+      <span class="drawer-total-amount" id="drawer-total-amount">DKK 9,999</span>
+    </div>
+    <button class="drawer-cta" id="add-cart">Add to cart</button>
+    <button class="drawer-share" id="share-btn">Share configuration</button>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const state = {
+    frame: 'charcoal',
+    back: 'shelf',
+    cover: 'charcoal'
+  };
+
+  const variantMap = {
+    'charcoal': 'midnight',
+    'pearl': 'beach',
+    'ultra-marine': 'street'
+  };
+
+  const labelMap = {
+    'charcoal': 'Charcoal',
+    'pearl': 'Pearl',
+    'ultra-marine': 'Ultra Marine'
+  };
+
+  // === Init from URL ===
+  function initFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('frame') && labelMap[params.get('frame')]) state.frame = params.get('frame');
+    if (params.has('back') && ['shelf', 'whiteboard', 'naked'].includes(params.get('back'))) state.back = params.get('back');
+    if (params.has('cover') && labelMap[params.get('cover')]) state.cover = params.get('cover');
+  }
+
+  function updateURL() {
+    const params = new URLSearchParams();
+    params.set('frame', state.frame);
+    params.set('back', state.back);
+    if (state.back === 'shelf') params.set('cover', state.cover);
+    history.replaceState({}, '', '?' + params.toString());
+  }
+
+  // === Render ===
+  function render() {
+    // Frame pills
+    document.querySelectorAll('#frame-pills .pill').forEach(p => {
+      p.classList.toggle('selected', p.dataset.value === state.frame);
+    });
+
+    // Drawer frame summary
+    document.getElementById('drawer-frame-dot').dataset.color = state.frame;
+    document.getElementById('drawer-frame-label').textContent = labelMap[state.frame];
+
+    // Cover swatches
+    document.querySelectorAll('#cover-swatches .swatch-wrap').forEach(s => {
+      s.classList.toggle('selected', s.dataset.value === state.cover);
+    });
+    document.getElementById('cover-value').textContent = labelMap[state.cover];
+
+    // Back cards
+    document.querySelectorAll('.radio-card').forEach(card => {
+      const isSelected = card.dataset.value === state.back;
+      card.classList.toggle('selected', isSelected);
+      const input = card.querySelector('input');
+      if (input) input.checked = isSelected;
+    });
+
+    // Conditional cover field
+    document.getElementById('cover-field').classList.toggle('disabled', state.back !== 'shelf');
+
+    // Conditional mounts inside drawer
+    document.getElementById('drawer-mounts').classList.toggle('visible', state.back === 'naked');
+
+    // 3D model variant
+    const viewer = document.getElementById('viewer');
+    if (viewer.availableVariants && viewer.availableVariants.length > 0) {
+      const targetVariant = variantMap[state.frame];
+      if (viewer.availableVariants.includes(targetVariant)) {
+        viewer.variantName = targetVariant;
+      }
+    }
+
+    updateURL();
+  }
+
+  // === Drawer ===
+  const drawer = document.getElementById('drawer');
+  const backdrop = document.getElementById('drawer-backdrop');
+
+  function openDrawer() {
+    drawer.classList.add('open');
+    backdrop.classList.add('open');
+    drawer.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('drawer-open');
+  }
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+    drawer.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('drawer-open');
+  }
+
+  document.getElementById('open-drawer').addEventListener('click', openDrawer);
+  document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  // === Frame pills ===
+  document.querySelectorAll('#frame-pills .pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      state.frame = pill.dataset.value;
+      render();
+    });
+  });
+
+  // === Cover swatches ===
+  document.querySelectorAll('#cover-swatches .swatch-wrap').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+      if (state.back !== 'shelf') return;
+      state.cover = swatch.dataset.value;
+      render();
+    });
+  });
+
+  // === Back radio cards ===
+  document.querySelectorAll('.radio-card').forEach(card => {
+    card.addEventListener('click', e => {
+      e.preventDefault();
+      state.back = card.dataset.value;
+      render();
+    });
+  });
+
+  // === Media toggle ===
+  document.querySelectorAll('.media-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.media-toggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const mode = btn.dataset.mode;
+      const viewer = document.getElementById('viewer');
+      const fallback = document.getElementById('image-fallback');
+
+      if (mode === '3d') {
+        viewer.style.display = '';
+        fallback.classList.remove('active');
+      } else {
+        viewer.style.display = 'none';
+        fallback.classList.add('active');
+        fallback.textContent = mode === 'image'
+          ? `[Product photography — ${labelMap[state.frame]} frame, ${state.back === 'shelf' ? 'Custom shelf with ' + labelMap[state.cover] + ' cover' : state.back === 'whiteboard' ? 'Whiteboard' : 'Naked back'}]`
+          : '[Product video would play here]';
+      }
+    });
+  });
+
+  // === Share ===
+  document.getElementById('share-btn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      showToast('Configuration link copied');
+    } catch (err) {
+      showToast('Could not copy link — select URL manually');
+    }
+  });
+
+  document.getElementById('add-cart').addEventListener('click', () => {
+    const summary = state.back === 'shelf'
+      ? `${labelMap[state.frame]} frame · Custom shelf · ${labelMap[state.cover]} cover`
+      : `${labelMap[state.frame]} frame · ${state.back === 'whiteboard' ? 'Whiteboard' : 'Naked back'}`;
+    showToast(`Added Arch PRO (${summary}) to cart`);
+    closeDrawer();
+  });
+
+  document.getElementById('pro-btn').addEventListener('click', () => {
+    showToast('Pro Resources modal would open here (email gate)');
+  });
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('visible');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('visible'), 2800);
+  }
+
+  initFromURL();
+  render();
+
+  document.getElementById('viewer').addEventListener('load', () => {
+    const viewer = document.getElementById('viewer');
+    console.log('Model loaded. Available variants:', viewer.availableVariants);
+    render();
+  });
+</script>
+
+</body>
+</html>
