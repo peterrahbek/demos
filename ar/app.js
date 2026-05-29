@@ -407,9 +407,12 @@ assetsReady.then(() => {
   if (urlParams.get("on") === "1") setTvOn(true);
 });
 
-// ─── Desktop-only: renderer + viewer + controls + UI ──────────────────────
-if (!isMobile) {
-  const canvas = document.getElementById("viewer");
+// ─── Renderer + viewer + controls (runs on desktop and mobile). The mobile
+// canvas lives in the hero card at the top of the page, the desktop canvas
+// fills the stage column. WebXR is created on demand in launchAR so the
+// preview renderer doesn't need xr.enabled. ──────────────────────────────
+{
+  const canvas = document.getElementById(isMobile ? "viewer-mobile" : "viewer");
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -417,7 +420,6 @@ if (!isMobile) {
   renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.xr.enabled = true;
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.06).texture;
@@ -459,9 +461,16 @@ if (!isMobile) {
   controls.minPolarAngle = Math.PI * 0.2;
   controls.autoRotate = true;
   controls.autoRotateSpeed = 0.5;
+  // On mobile, disable manual orbit so vertical drags still scroll the page
+  // and the preview just auto-rotates. Desktop keeps full orbit.
+  if (isMobile) {
+    controls.enabled = false;
+    canvas.style.touchAction = "auto";
+  } else {
+    renderer.domElement.addEventListener("pointerdown",
+      () => { controls.autoRotate = false; }, { once: true });
+  }
   controls.update();
-  renderer.domElement.addEventListener("pointerdown",
-    () => { controls.autoRotate = false; }, { once: true });
 
   function resize() {
     const r = canvas.getBoundingClientRect();

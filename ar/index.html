@@ -119,9 +119,9 @@
     .mobile{padding:0 22px 32px;gap:0}
     .mobile .hero{
       width:100%;aspect-ratio:4/5;background:var(--stage);
-      background-image:url("./assets/hero.png");background-size:contain;background-position:center;background-repeat:no-repeat;
-      border-radius:6px;margin-top:18px;
+      border-radius:6px;margin-top:18px;overflow:hidden;position:relative;
     }
+    .mobile .hero canvas{width:100%;height:100%;display:block}
     .mobile .meta{padding:24px 4px 0;display:flex;flex-direction:column;gap:6px}
     .mobile .eyebrow{margin:0}
     .mobile h1.title{font-size:42px}
@@ -259,7 +259,7 @@
 
   <!-- ─────────── MOBILE ─────────── -->
   <main class="mobile" aria-hidden="true">
-    <div class="hero"></div>
+    <div class="hero"><canvas id="viewer-mobile"></canvas></div>
     <div class="meta">
       <div class="eyebrow">Pipe Series · Stands w/ Wheels</div>
       <h1 class="title">Moon Rollin'<span class="variant">Ultra Marine</span></h1>
