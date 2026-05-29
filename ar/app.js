@@ -42,10 +42,8 @@ const TEX = {
     "apricot":      loadTex("./assets/moon-regular-apricot.jpg",      { srgb: true }),
     "chrome":       loadTex("./assets/moon-regular-chrome.jpg",       { srgb: true }),
   },
-  bodyMatteMet:  loadTex("./assets/moon-regular-matte-metalness.jpg"),
   bodyChromeMet: loadTex("./assets/moon-regular-chrome-metalness.jpg"),
   bodyChromeRgh: loadTex("./assets/moon-regular-chrome-roughness.jpg"),
-  bodyAo:        loadTex("./assets/moon-regular-ao.jpg"),
   wheelChromeBase: loadTex("./assets/wheels-chrome.jpg", { srgb: true }),
   wheelChromeMet:  loadTex("./assets/wheels-chrome-metalness.jpg"),
   wheelChromeRgh: loadTex("./assets/wheels-chrome-roughness.jpg"),
@@ -154,10 +152,6 @@ const assetsReady = Promise.all([
     o.castShadow = true; o.receiveShadow = true;
     if (o.material?.name === STRUCTURE_MAT_NAME) {
       structureMat = o.material;
-      const g = o.geometry;
-      if (g.attributes.uv && !g.attributes.uv1) {
-        g.setAttribute("uv1", g.attributes.uv);
-      }
     } else if (/metal|screw/i.test(o.material?.name)) {
       screwMat = o.material;
       screwMat.metalness = 0.9;
@@ -343,20 +337,23 @@ function setColor(key) {
 
   if (structureMat) {
     structureMat.map = TEX.bodyBase[key];
-    structureMat.aoMap = TEX.bodyAo;
-    // The base colour maps already encode some self-shadowing, and Three.js
-    // applies aoMap multiplicatively on top. Dialled all the way down so the
-    // bottom cross-bar and corner joints stop reading as discoloured.
-    structureMat.aoMapIntensity = 0.25;
+    // No aoMap / matte metalness map on the structure: in Quick Look (no rich
+    // environment, occlusion at full strength) those maps turned the VESA
+    // strips and some leg faces near-black. The base atlas already carries
+    // the baked shading. Matte powder-coat is a pure dielectric; only chrome
+    // needs metalness + roughness maps.
+    structureMat.aoMap = null;
     if (isChrome) {
       structureMat.metalnessMap = TEX.bodyChromeMet;
       structureMat.roughnessMap = TEX.bodyChromeRgh;
+      structureMat.metalness = 1.0;
+      structureMat.roughness = 1.0;
     } else {
-      structureMat.metalnessMap = TEX.bodyMatteMet;
+      structureMat.metalnessMap = null;
       structureMat.roughnessMap = null;
+      structureMat.metalness = 0.0;
+      structureMat.roughness = 0.55;
     }
-    structureMat.metalness = 1.0;
-    structureMat.roughness = isChrome ? 1.0 : 0.85;
     structureMat.color.setHex(0xffffff);
     structureMat.needsUpdate = true;
   }
