@@ -356,15 +356,14 @@ function setColor(key) {
     // needs metalness + roughness maps.
     structureMat.aoMap = null;
     if (isChrome) {
-      // Polished chrome with reflection pop, but a small uniform roughness
-      // floor instead of the atlas's near-zero values. At true 0 roughness
-      // the flat VESA strips mirrored bright windows as hard white blotches;
-      // 0.14 keeps it clearly mirror-like (tubes reflect beautifully) while
-      // softening hotspot edges on the flats into a glow rather than a streak.
+      // Glassy mirror chrome. Small uniform roughness floor (0.07) rather
+      // than the atlas's true-zero so the flat VESA strips don't reflect
+      // bright windows as razor-hard blotches, but reflections stay crisp
+      // and mirror-like across both tubes and flats.
       structureMat.metalnessMap = TEX.bodyChromeMet;
       structureMat.roughnessMap = null;
       structureMat.metalness = 1.0;
-      structureMat.roughness = 0.14;
+      structureMat.roughness = 0.07;
     } else {
       structureMat.metalnessMap = null;
       structureMat.roughnessMap = null;
