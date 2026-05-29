@@ -187,7 +187,7 @@ const assetsReady = Promise.all([
       o.castShadow = true; o.receiveShadow = true;
       o.material = makeTvBoxMaterial();
     });
-    tv.position.set(0, 0.75, 0.038);
+    tv.position.set(0, TV_FACE[size].y, 0.038);
 
     const face = TV_FACE[size];
     const overlay = new THREE.Mesh(
@@ -255,12 +255,14 @@ function drawTvFrame(t) {
 // Seed an initial frame so the USDZ export has something to bake
 drawTvFrame(0);
 
-// TV sizes (m) for the front-face overlay plane
+// TV sizes (m) for the front-face overlay plane. y is the vertical centre on
+// the stand — bigger screens ride higher so their bottom doesn't dangle
+// past the casters. Approximation of "VESA bottom at ~0.45m".
 const TV_FACE = {
-  "40": { w: 0.942, h: 0.552 },
-  "50": { w: 1.167, h: 0.678 },
-  "60": { w: 1.386, h: 0.806 },
-  "70": { w: 1.627, h: 0.963 },
+  "40": { w: 0.942, h: 0.552, y: 0.73 },
+  "50": { w: 1.167, h: 0.678, y: 0.79 },
+  "60": { w: 1.386, h: 0.806, y: 0.85 },
+  "70": { w: 1.627, h: 0.963, y: 0.93 },
 };
 const TV_DEPTH_HALF = 0.0175;   // all TV slabs are ~3.5cm deep
 const TV_FACE_INSET = 0.04;     // bezel inset so the canvas reads as a screen
@@ -578,7 +580,6 @@ let lastUsdzUrl = null;
 async function launchQuickLook() {
   const hint = document.getElementById("ar-hint");
   if (hint) hint.textContent = "Preparing AR…";
-  let restoreTvImage = null;
   try {
     // On mobile there's no render loop, so matrixWorld is never refreshed.
     // USDZExporter reads matrixWorld for each mesh — without this update,
@@ -588,23 +589,7 @@ async function launchQuickLook() {
     // Bake the latest TV-on frame so it lands in the USDZ as the emissive
     // map. AR Quick Look doesn't replay our canvas, but it does render a
     // single still — so the "TV on" state still reads correctly in AR.
-    //
-    // Quick Look samples canvas textures rotated 180° relative to the live
-    // Three.js render, so we swap the texture's image for a pre-rotated
-    // copy just for the duration of the export, then swap it back.
-    if (tvOn) {
-      drawTvFrame(tvAnimTime || 0);
-      const rotated = document.createElement("canvas");
-      rotated.width = tvCanvas.width;
-      rotated.height = tvCanvas.height;
-      const rctx = rotated.getContext("2d");
-      rctx.translate(rotated.width, rotated.height);
-      rctx.rotate(Math.PI);
-      rctx.drawImage(tvCanvas, 0, 0);
-      restoreTvImage = tvTexture.image;
-      tvTexture.image = rotated;
-      tvTexture.needsUpdate = true;
-    }
+    if (tvOn) drawTvFrame(tvAnimTime || 0);
 
     const exportRoot = product.clone(true);
     exportRoot.updateMatrixWorld(true);
@@ -630,11 +615,6 @@ async function launchQuickLook() {
   } catch (e) {
     console.error("USDZ export failed", e);
     if (hint) hint.textContent = "Couldn't open AR: " + e.message;
-  } finally {
-    if (restoreTvImage) {
-      tvTexture.image = restoreTvImage;
-      tvTexture.needsUpdate = true;
-    }
   }
 }
 
