@@ -233,12 +233,18 @@ if (!isMobile) {
 }
 
 // ─── QR modal (desktop) ───────────────────────────────────────────────────
+// Encode a URL that, when opened on a phone, jumps straight to AR.
+function arUrlForCurrentPage() {
+  const u = new URL(window.location.href);
+  u.hash = "";
+  u.searchParams.set("ar", "1");
+  return u.toString();
+}
 function showQR() {
-  const url = window.location.href.split("#")[0];
+  const url = arUrlForCurrentPage();
   const qr = qrcode(0, "M");
   qr.addData(url);
   qr.make();
-  // 6px modules with 2-module border gives ~200px visual size
   document.getElementById("qr-frame").innerHTML = qr.createSvgTag({
     cellSize: 6, margin: 2, scalable: true,
   });
@@ -272,14 +278,34 @@ async function checkWebXR() {
 const arLinkMobile = document.getElementById("ar-link-mobile");
 if (arLinkMobile) arLinkMobile.addEventListener("click", launchAR);
 
+// ─── Auto-launch when arrived from QR (`?ar=1`) ───────────────────────────
+if (isMobile && new URLSearchParams(window.location.search).get("ar") === "1") {
+  const hint = document.getElementById("ar-hint");
+  if (hint) hint.textContent = "Loading…";
+  // Wait for assets to load, then fire automatically. iOS requires a user
+  // gesture for the rel="ar" anchor in some configurations — we still call
+  // it on its own, but if it blocks we fall back to letting the user tap.
+  assetsReady.then(() => {
+    if (hint) hint.textContent = "Opening AR…";
+    launchAR();
+  });
+}
+
 // ─── iOS AR Quick Look (USDZ exported from the current scene) ─────────────
 let lastUsdzUrl = null;
 async function launchQuickLook() {
   const hint = document.getElementById("ar-hint");
   if (hint) hint.textContent = "Preparing AR…";
   try {
+    // On mobile there's no render loop, so matrixWorld is never refreshed.
+    // USDZExporter reads matrixWorld for each mesh — without this update,
+    // every mesh ends up at the origin and the TV covers the stand.
+    product.updateMatrixWorld(true);
+
     const exportRoot = product.clone(true);
+    exportRoot.updateMatrixWorld(true);
     exportRoot.traverse((o) => { if (o.name === "tv") o.visible = tvContainer.visible; });
+
     const exporter = new USDZExporter();
     const arraybuffer = await exporter.parse(exportRoot);
     const blob = new Blob([arraybuffer], { type: "model/vnd.usdz+zip" });
