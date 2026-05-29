@@ -358,6 +358,23 @@ function setColor(key) {
     structureMat.needsUpdate = true;
   }
 
+  // Metal.Screws covers the VESA mounting strips alongside the bolts. On a
+  // matte powder-coated stand those strips are colour-matched to the body —
+  // not bare metal — so tint to the body colour and drop metalness almost to
+  // zero in matte mode. Chrome keeps the screws fully metallic.
+  if (screwMat) {
+    if (isChrome) {
+      screwMat.color.setHex(0xc8c8cc);
+      screwMat.metalness = 0.9;
+      screwMat.roughness = 0.32;
+    } else {
+      screwMat.color.setHex(COLORS[key].hex);
+      screwMat.metalness = 0.05;
+      screwMat.roughness = 0.55;
+    }
+    screwMat.needsUpdate = true;
+  }
+
   // Toggle which wheel set is visible (chrome wheels are a separate mesh)
   matteWheelGroup.visible = !isChrome;
   chromeWheelGroup.visible = isChrome;
