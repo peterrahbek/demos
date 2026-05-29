@@ -131,8 +131,13 @@ const assetsReady = Promise.all([
   tvContainer.add(tv);
 });
 
+// ─── Current configuration (mirrored into the URL params) ────────────────
+let currentColor = "ultra-marine";
+
 // ─── Colour swapping ──────────────────────────────────────────────────────
 function setColor(key) {
+  if (!COLORS[key]) return;
+  currentColor = key;
   const hex = COLORS[key].hex;
   if (structureMat) {
     structureMat.color.setHex(hex);
@@ -148,6 +153,22 @@ function setColor(key) {
   const nameEl = document.getElementById("color-name");
   if (nameEl) nameEl.textContent = COLORS[key].name;
 }
+
+function setTvVisible(visible) {
+  tvContainer.visible = !!visible;
+  const btn = document.getElementById("tv-toggle");
+  if (btn) btn.setAttribute("aria-pressed", String(tvContainer.visible));
+}
+
+// ─── Apply state from URL params (?color=mossy-green&tv=0) ────────────────
+const urlParams = new URLSearchParams(window.location.search);
+assetsReady.then(() => {
+  const c = urlParams.get("color");
+  if (c && COLORS[c]) setColor(c);
+  const t = urlParams.get("tv");
+  if (t === "0") setTvVisible(false);
+  else if (t === "1") setTvVisible(true);
+});
 
 // ─── Desktop-only: renderer + viewer + controls + UI ──────────────────────
 if (!isMobile) {
@@ -222,10 +243,8 @@ if (!isMobile) {
   });
 
   // TV toggle
-  const tvBtn = document.getElementById("tv-toggle");
-  tvBtn.addEventListener("click", () => {
-    tvContainer.visible = !tvContainer.visible;
-    tvBtn.setAttribute("aria-pressed", String(tvContainer.visible));
+  document.getElementById("tv-toggle").addEventListener("click", () => {
+    setTvVisible(!tvContainer.visible);
   });
 
   // "Show in your space" → QR modal
@@ -233,11 +252,15 @@ if (!isMobile) {
 }
 
 // ─── QR modal (desktop) ───────────────────────────────────────────────────
-// Encode a URL that, when opened on a phone, jumps straight to AR.
+// Encode a URL that, when opened on a phone, jumps straight to AR with the
+// user's current colour and TV-visibility selection baked in.
 function arUrlForCurrentPage() {
   const u = new URL(window.location.href);
   u.hash = "";
+  u.search = "";
   u.searchParams.set("ar", "1");
+  u.searchParams.set("color", currentColor);
+  u.searchParams.set("tv", tvContainer.visible ? "1" : "0");
   return u.toString();
 }
 function showQR() {
