@@ -107,6 +107,10 @@ const loadGLB = (path) =>
 
 function tuneMaterial(mat) {
   if (!mat) return;
+  // Force single-sided. USDZExporter logs a warning per double-sided material
+  // and Quick Look renders the back face as black, which shows through any
+  // perforations in the model.
+  mat.side = THREE.FrontSide;
   if (/metal|screw/i.test(mat.name)) {
     mat.metalness = 0.85; mat.roughness = 0.35;
   } else {
@@ -123,6 +127,7 @@ function instanceWheelsInto(group, proto, matSink) {
         o.castShadow = true; o.receiveShadow = true;
         if (o.material) {
           o.material = o.material.clone();
+          o.material.side = THREE.FrontSide;
           if (/wheel/i.test(o.material.name)) matSink.push(o.material);
         }
       });
@@ -149,10 +154,9 @@ const assetsReady = Promise.all([
   body.traverse((o) => {
     if (!o.isMesh) return;
     o.castShadow = true; o.receiveShadow = true;
+    if (o.material) o.material.side = THREE.FrontSide;
     if (o.material?.name === STRUCTURE_MAT_NAME) {
       structureMat = o.material;
-      // Sampling the AO map needs uv2 in three.js < r158-ish. Newer builds
-      // can sample aoMap from uv1 too — just keep both paths covered.
       const g = o.geometry;
       if (g.attributes.uv && !g.attributes.uv1) {
         g.setAttribute("uv1", g.attributes.uv);
@@ -623,30 +627,16 @@ let lastUsdzUrl = null;
 async function launchQuickLook() {
   const hint = document.getElementById("ar-hint");
   if (hint) hint.textContent = "Preparing AR…";
-  let restoreTvImage = null;
   try {
     // On mobile there's no render loop, so matrixWorld is never refreshed.
     // USDZExporter reads matrixWorld for each mesh — without this update,
     // every mesh ends up at the origin and the TV covers the stand.
     product.updateMatrixWorld(true);
 
-    // Bake the latest TV-on frame, then horizontally mirror it for the
-    // USDZ. Quick Look samples canvas textures with the U axis flipped vs
-    // Three.js's live render — without the pre-mirror the wordmark reads
-    // backwards on iPhone.
-    if (tvOn) {
-      drawTvFrame(tvAnimTime || 0);
-      const mirrored = document.createElement("canvas");
-      mirrored.width = tvCanvas.width;
-      mirrored.height = tvCanvas.height;
-      const mctx = mirrored.getContext("2d");
-      mctx.translate(mirrored.width, 0);
-      mctx.scale(-1, 1);
-      mctx.drawImage(tvCanvas, 0, 0);
-      restoreTvImage = tvTexture.image;
-      tvTexture.image = mirrored;
-      tvTexture.needsUpdate = true;
-    }
+    // Bake the latest TV-on frame so the canvas content lands in the USDZ as
+    // the emissive map. AR Quick Look renders the still upright with the
+    // same sampling as Three.js.
+    if (tvOn) drawTvFrame(tvAnimTime || 0);
 
     const exportRoot = product.clone(true);
     exportRoot.updateMatrixWorld(true);
@@ -672,11 +662,6 @@ async function launchQuickLook() {
   } catch (e) {
     console.error("USDZ export failed", e);
     if (hint) hint.textContent = "Couldn't open AR: " + e.message;
-  } finally {
-    if (restoreTvImage) {
-      tvTexture.image = restoreTvImage;
-      tvTexture.needsUpdate = true;
-    }
   }
 }
 
