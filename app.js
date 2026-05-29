@@ -13,15 +13,13 @@ const isMobile = isiOS || /Android|Mobile/i.test(navigator.userAgent);
 document.body.dataset.mode = isMobile ? "mobile" : "desktop";
 
 // ─── Palette ──────────────────────────────────────────────────────────────
-// Each entry sets the body+wheel structure material colour and overrides the
-// matte PBR defaults. "chrome" is a polished metal — high metalness, very low
-// roughness, near-white base — so it picks up the room environment as
-// reflection rather than a flat tint.
+// Each entry sets the body+wheel structure material colour and PBR overrides.
+// Hexes are derived from Pedestal's product colours; matte finishes use a low
+// metalness so the cream stage doesn't bounce too much light back into them.
 const COLORS = {
   "ultra-marine": { hex: 0x1d40b3, name: "Ultra Marine", metalness: 0.40, roughness: 0.45 },
-  "charcoal":     { hex: 0x26272a, name: "Charcoal",     metalness: 0.40, roughness: 0.45 },
-  "pearl":        { hex: 0xece4d4, name: "Pearl",        metalness: 0.40, roughness: 0.45 },
-  "mossy-green":  { hex: 0x6a7559, name: "Mossy Green",  metalness: 0.40, roughness: 0.45 },
+  "bubble-gum":   { hex: 0xf4a8b8, name: "Bubble Gum",   metalness: 0.40, roughness: 0.45 },
+  "apricot":      { hex: 0xe89a62, name: "Apricot",      metalness: 0.40, roughness: 0.45 },
   "chrome":       { hex: 0xeeeeee, name: "Chrome",       metalness: 1.00, roughness: 0.08 },
 };
 const STRUCTURE_MAT_NAME = "UltraMarine.Structure.001";
