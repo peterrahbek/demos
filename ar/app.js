@@ -44,9 +44,6 @@ const TEX = {
   },
   bodyChromeMet: loadTex("./assets/moon-regular-chrome-metalness.jpg"),
   bodyChromeRgh: loadTex("./assets/moon-regular-chrome-roughness.jpg"),
-  wheelChromeBase: loadTex("./assets/wheels-chrome.jpg", { srgb: true }),
-  wheelChromeMet:  loadTex("./assets/wheels-chrome-metalness.jpg"),
-  wheelChromeRgh: loadTex("./assets/wheels-chrome-roughness.jpg"),
 };
 
 // ─── Moon Rollin' geometry constants ──────────────────────────────────────
@@ -170,21 +167,24 @@ const assetsReady = Promise.all([
   instanceWheelsInto(matteWheelGroup, matteWheelGltf.scene, matteWheelMats);
   instanceWheelsInto(chromeWheelGroup, chromeWheelGltf.scene, chromeWheelMats);
 
-  // Chrome wheels: the baked metalness atlas marks the swivel housing as
-  // non-metallic, so with its white base it rendered as flat white plastic.
-  // For a polished-chrome caster we drop the metalness/roughness atlases and
-  // drive everything from the base map: black tread → dark mirror, white
-  // housing → bright chrome, all fully metallic + low roughness so it
-  // reflects the room like real chrome.
-  for (const m of chromeWheelMats) {
-    m.map = TEX.wheelChromeBase;
-    m.metalnessMap = null;
-    m.roughnessMap = null;
-    m.metalness = 1.0;
-    m.roughness = 0.18;
-    m.color.setHex(0xffffff);
-    m.needsUpdate = true;
-  }
+  // Chrome wheels have two materials: Charcoal.Wheels (the dark wheel body +
+  // tread) and Metal.Screws.002 (the swivel housing/fork, authored as a
+  // non-metallic light grey — which is the flat white the housing showed).
+  // Make the housing polished chrome and keep the wheel body dark rubber.
+  chromeWheelGroup.traverse((o) => {
+    if (!o.isMesh || !o.material) return;
+    o.material.map = null;
+    if (/screw|metal/i.test(o.material.name || "")) {
+      o.material.color.setHex(0xd4d6da);
+      o.material.metalness = 1.0;
+      o.material.roughness = 0.16;
+    } else {
+      o.material.color.setHex(0x101012);
+      o.material.metalness = 0.2;
+      o.material.roughness = 0.55;
+    }
+    o.material.needsUpdate = true;
+  });
 
   // Mount all four TV sizes at the same VESA point. Each TV gets a dedicated
   // front-face overlay plane that carries the canvas texture when "on".
