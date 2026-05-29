@@ -153,9 +153,16 @@ const assetsReady = Promise.all([
     if (o.material?.name === STRUCTURE_MAT_NAME) {
       structureMat = o.material;
     } else if (/metal|screw/i.test(o.material?.name)) {
+      // Metal.Screws is the hex bolts + small VESA mounting brackets (NOT the
+      // strips — those live in the structure material). It's zinc/steel
+      // hardware on every colourway, so give it one neutral polished-metal
+      // look and never tint it to the body colour.
       screwMat = o.material;
-      screwMat.metalness = 0.9;
-      screwMat.roughness = 0.32;
+      screwMat.map = null;
+      screwMat.color.setHex(0xc0c0c4);
+      screwMat.metalness = 1.0;
+      screwMat.roughness = 0.3;
+      screwMat.needsUpdate = true;
     }
   });
   bodyContainer.add(body);
@@ -163,13 +170,18 @@ const assetsReady = Promise.all([
   instanceWheelsInto(matteWheelGroup, matteWheelGltf.scene, matteWheelMats);
   instanceWheelsInto(chromeWheelGroup, chromeWheelGltf.scene, chromeWheelMats);
 
-  // Pre-configure chrome wheel materials with the chrome PBR maps once
+  // Chrome wheels: the baked metalness atlas marks the swivel housing as
+  // non-metallic, so with its white base it rendered as flat white plastic.
+  // For a polished-chrome caster we drop the metalness/roughness atlases and
+  // drive everything from the base map: black tread → dark mirror, white
+  // housing → bright chrome, all fully metallic + low roughness so it
+  // reflects the room like real chrome.
   for (const m of chromeWheelMats) {
     m.map = TEX.wheelChromeBase;
-    m.metalnessMap = TEX.wheelChromeMet;
-    m.roughnessMap = TEX.wheelChromeRgh;
+    m.metalnessMap = null;
+    m.roughnessMap = null;
     m.metalness = 1.0;
-    m.roughness = 1.0;
+    m.roughness = 0.18;
     m.color.setHex(0xffffff);
     m.needsUpdate = true;
   }
@@ -358,22 +370,8 @@ function setColor(key) {
     structureMat.needsUpdate = true;
   }
 
-  // Metal.Screws covers the VESA mounting strips alongside the bolts. On a
-  // matte powder-coated stand those strips are colour-matched to the body —
-  // not bare metal — so tint to the body colour and drop metalness almost to
-  // zero in matte mode. Chrome keeps the screws fully metallic.
-  if (screwMat) {
-    if (isChrome) {
-      screwMat.color.setHex(0xc8c8cc);
-      screwMat.metalness = 0.9;
-      screwMat.roughness = 0.32;
-    } else {
-      screwMat.color.setHex(COLORS[key].hex);
-      screwMat.metalness = 0.05;
-      screwMat.roughness = 0.55;
-    }
-    screwMat.needsUpdate = true;
-  }
+  // Metal.Screws (hex bolts + brackets) is colour-independent zinc/steel
+  // hardware — configured once at load, never tinted to the body colour.
 
   // Toggle which wheel set is visible (chrome wheels are a separate mesh)
   matteWheelGroup.visible = !isChrome;
