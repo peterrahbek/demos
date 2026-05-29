@@ -89,6 +89,10 @@ const tvContainer = new THREE.Group();
 tvContainer.name = "tv";
 bodyContainer.add(tvContainer);
 
+const tvBySize = {};               // "40" → THREE.Object3D
+let currentTvSize = "50";
+let tvOn = false;
+
 // ─── Load all GLBs (parallel) ─────────────────────────────────────────────
 const draco = new DRACOLoader();
 draco.setDecoderPath("./vendor/three/examples/jsm/libs/draco/gltf/");
@@ -130,8 +134,11 @@ const assetsReady = Promise.all([
   loadGLB("./assets/moon-regular.glb"),
   loadGLB("./assets/wheels-standard.glb"),
   loadGLB("./assets/wheels-chrome.glb"),
+  loadGLB("./assets/screen-40.glb"),
   loadGLB("./assets/screen-50.glb"),
-]).then(([bodyGltf, matteWheelGltf, chromeWheelGltf, tvGltf]) => {
+  loadGLB("./assets/screen-60.glb"),
+  loadGLB("./assets/screen-70.glb"),
+]).then(([bodyGltf, matteWheelGltf, chromeWheelGltf, tv40, tv50, tv60, tv70]) => {
   // Body — capture the structure + screw materials so the colour swap can
   // hot-swap maps. The GLB ships with no maps; we drive the look entirely
   // from the Pedestal-baked atlases.
@@ -169,22 +176,120 @@ const assetsReady = Promise.all([
     m.needsUpdate = true;
   }
 
-  // 50" TV
-  const tv = tvGltf.scene;
-  tv.traverse((o) => {
-    if (!o.isMesh) return;
-    o.castShadow = true; o.receiveShadow = true;
-    o.material = new THREE.MeshStandardMaterial({
-      color: 0x0c0d10, roughness: 0.18, metalness: 0.15,
-      emissive: 0x12182a, emissiveIntensity: 0.25,
+  // Mount all four TV sizes at the same VESA point. Each TV gets a dedicated
+  // front-face overlay plane that carries the canvas texture when "on".
+  const tvGltfs = { "40": tv40, "50": tv50, "60": tv60, "70": tv70 };
+  for (const [size, gltf] of Object.entries(tvGltfs)) {
+    const tv = gltf.scene;
+    tv.userData.size = size;
+    tv.traverse((o) => {
+      if (!o.isMesh) return;
+      o.castShadow = true; o.receiveShadow = true;
+      o.material = makeTvBoxMaterial();
     });
-  });
-  tv.position.set(0, 0.75, 0.038);
-  tvContainer.add(tv);
+    tv.position.set(0, 0.75, 0.038);
+
+    const face = TV_FACE[size];
+    const overlay = new THREE.Mesh(
+      new THREE.PlaneGeometry(face.w - 2 * TV_FACE_INSET, face.h - 2 * TV_FACE_INSET),
+      makeScreenOverlayMaterial(),
+    );
+    overlay.name = "screen-overlay";
+    overlay.position.set(0, 0, TV_DEPTH_HALF + 0.001);
+    overlay.visible = false;
+    tv.add(overlay);
+
+    tv.visible = size === currentTvSize;
+    tvBySize[size] = tv;
+    tvContainer.add(tv);
+  }
 });
 
 // ─── Current configuration (mirrored into the URL params) ────────────────
 let currentColor = "ultra-marine";
+
+// ─── TV "on" canvas — animated pattern for live preview, baked frame for
+// USDZ export. ────────────────────────────────────────────────────────────
+const tvCanvas = document.createElement("canvas");
+tvCanvas.width = 1024;
+tvCanvas.height = 576;
+const tvCtx = tvCanvas.getContext("2d");
+const tvTexture = new THREE.CanvasTexture(tvCanvas);
+tvTexture.colorSpace = THREE.SRGBColorSpace;
+
+let tvAnimTime = 0;
+function drawTvFrame(t) {
+  const w = tvCanvas.width, h = tvCanvas.height;
+  // Cycling colour gradient background
+  const hue = (t * 24) % 360;
+  const g = tvCtx.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0,   `hsl(${hue},        65%, 18%)`);
+  g.addColorStop(0.5, `hsl(${(hue+40)%360}, 72%, 26%)`);
+  g.addColorStop(1,   `hsl(${(hue+80)%360}, 65%, 18%)`);
+  tvCtx.fillStyle = g;
+  tvCtx.fillRect(0, 0, w, h);
+  // Slow horizontal scanlines for an old-TV feel
+  tvCtx.globalAlpha = 0.06;
+  tvCtx.fillStyle = "#000";
+  for (let y = 0; y < h; y += 4) tvCtx.fillRect(0, y, w, 1);
+  tvCtx.globalAlpha = 1;
+  // Pedestal wordmark, breathing
+  const breath = 1 + 0.02 * Math.sin(t * 1.8);
+  tvCtx.save();
+  tvCtx.translate(w/2, h/2);
+  tvCtx.scale(breath, breath);
+  tvCtx.font = `600 ${Math.floor(h * 0.22)}px "Inter","Helvetica Neue",Arial,sans-serif`;
+  tvCtx.textAlign = "center";
+  tvCtx.textBaseline = "middle";
+  tvCtx.fillStyle = "rgba(255,255,255,0.92)";
+  tvCtx.letterSpacing = "0.2em";
+  tvCtx.fillText("PEDESTAL", 0, 0);
+  tvCtx.restore();
+  // Lower-third caption
+  tvCtx.font = `500 ${Math.floor(h * 0.04)}px Inter, Arial, sans-serif`;
+  tvCtx.fillStyle = "rgba(255,255,255,0.55)";
+  tvCtx.textAlign = "center";
+  tvCtx.fillText(`MOON ROLLIN' · ${currentTvSize}" SHOWCASE`, w/2, h * 0.85);
+  tvTexture.needsUpdate = true;
+}
+// Seed an initial frame so the USDZ export has something to bake
+drawTvFrame(0);
+
+// TV sizes (m) for the front-face overlay plane
+const TV_FACE = {
+  "40": { w: 0.942, h: 0.552 },
+  "50": { w: 1.167, h: 0.678 },
+  "60": { w: 1.386, h: 0.806 },
+  "70": { w: 1.627, h: 0.963 },
+};
+const TV_DEPTH_HALF = 0.0175;   // all TV slabs are ~3.5cm deep
+const TV_FACE_INSET = 0.04;     // bezel inset so the canvas reads as a screen
+
+function makeTvBoxMaterial() {
+  // The TV body — slab and bezel. Stays consistently dark.
+  return new THREE.MeshStandardMaterial({
+    color: 0x0a0b0e, roughness: 0.32, metalness: 0.15,
+  });
+}
+function makeScreenOverlayMaterial() {
+  // Front-face plane that lights up when the TV is on. MeshStandardMaterial
+  // (not Basic) so the USDZExporter on iOS can serialise it; the emissive
+  // map ensures the screen content reads as self-lit rather than depending
+  // on scene lighting.
+  return new THREE.MeshStandardMaterial({
+    color: 0x000000, roughness: 1.0, metalness: 0.0,
+    emissive: 0xffffff, emissiveIntensity: 1.2, emissiveMap: tvTexture,
+    map: tvTexture,
+  });
+}
+
+function applyTvOnState() {
+  for (const tv of Object.values(tvBySize)) {
+    tv.traverse((o) => {
+      if (o.name === "screen-overlay") o.visible = tvOn;
+    });
+  }
+}
 
 // ─── Colour swapping ──────────────────────────────────────────────────────
 // The Pedestal Studio architecture uses a single body GLB with a shared UV
@@ -249,14 +354,37 @@ function setTvVisible(visible) {
   if (btn) btn.setAttribute("aria-pressed", String(tvContainer.visible));
 }
 
+const TV_SIZES = ["40", "50", "60", "70"];
+function setTvSize(size) {
+  if (!TV_SIZES.includes(size)) return;
+  currentTvSize = size;
+  for (const [s, tv] of Object.entries(tvBySize)) tv.visible = (s === size);
+  document.querySelectorAll("[data-tv-size]").forEach((el) => {
+    el.textContent = `${size}" TV`;
+  });
+}
+function setTvOn(on) {
+  tvOn = !!on;
+  applyTvOnState();
+  document.querySelectorAll("[data-tv-power]").forEach((el) => {
+    el.setAttribute("aria-pressed", String(tvOn));
+  });
+}
+
 // ─── Apply state from URL params (?color=mossy-green&tv=0) ────────────────
 const urlParams = new URLSearchParams(window.location.search);
 assetsReady.then(() => {
+  // Always apply a colour at startup — the wheels GLB's default material is
+  // mossy green, so without an explicit setColor() call the casters look
+  // wrong even when the URL has no params.
   const c = urlParams.get("color");
-  if (c && COLORS[c]) setColor(c);
+  setColor(c && COLORS[c] ? c : currentColor);
   const t = urlParams.get("tv");
   if (t === "0") setTvVisible(false);
   else if (t === "1") setTvVisible(true);
+  const sz = urlParams.get("size");
+  if (sz && TV_SIZES.includes(sz)) setTvSize(sz);
+  if (urlParams.get("on") === "1") setTvOn(true);
 });
 
 // ─── Desktop-only: renderer + viewer + controls + UI ──────────────────────
@@ -321,8 +449,15 @@ if (!isMobile) {
   new ResizeObserver(resize).observe(canvas);
   resize();
 
-  renderer.setAnimationLoop(() => {
+  let lastT = performance.now();
+  renderer.setAnimationLoop((now) => {
+    const dt = ((now ?? performance.now()) - lastT) / 1000;
+    lastT = now ?? performance.now();
     controls.update();
+    if (tvOn && tvContainer.visible) {
+      tvAnimTime += dt;
+      drawTvFrame(tvAnimTime);
+    }
     renderer.render(scene, camera);
   });
 
@@ -331,10 +466,43 @@ if (!isMobile) {
     btn.addEventListener("click", () => setColor(btn.dataset.color));
   });
 
-  // TV toggle
-  document.getElementById("tv-toggle").addEventListener("click", () => {
-    setTvVisible(!tvContainer.visible);
+  // TV cycle: off → 40 → 50 → 60 → 70 → off
+  const TV_STATES = ["off", "40", "50", "60", "70"];
+  function cycleTv() {
+    const now = tvContainer.visible ? currentTvSize : "off";
+    const next = TV_STATES[(TV_STATES.indexOf(now) + 1) % TV_STATES.length];
+    if (next === "off") {
+      setTvVisible(false);
+    } else {
+      setTvSize(next);
+      if (!tvContainer.visible) setTvVisible(true);
+    }
+    updateTvCycleLabel();
+  }
+  function updateTvCycleLabel() {
+    const cycleBtn = document.getElementById("tv-cycle");
+    const label = document.getElementById("tv-label");
+    if (!cycleBtn || !label) return;
+    if (tvContainer.visible) {
+      cycleBtn.setAttribute("aria-pressed", "true");
+      label.textContent = `${currentTvSize}" TV`;
+    } else {
+      cycleBtn.setAttribute("aria-pressed", "false");
+      label.textContent = "TV hidden";
+    }
+  }
+  document.getElementById("tv-cycle").addEventListener("click", cycleTv);
+
+  // Power toggle (the gimmick)
+  document.getElementById("tv-power").addEventListener("click", () => {
+    setTvOn(!tvOn);
+    document.getElementById("tv-power-label").textContent = tvOn ? "On" : "Power";
+    // If the TV was hidden, turning power on also reveals it
+    if (tvOn && !tvContainer.visible) { setTvVisible(true); updateTvCycleLabel(); }
   });
+
+  // Keep the cycle label honest after URL-driven init
+  assetsReady.then(updateTvCycleLabel);
 
   // "Show in your space" → QR modal
   document.getElementById("ar-link-desktop").addEventListener("click", showQR);
@@ -350,6 +518,8 @@ function arUrlForCurrentPage() {
   u.searchParams.set("ar", "1");
   u.searchParams.set("color", currentColor);
   u.searchParams.set("tv", tvContainer.visible ? "1" : "0");
+  u.searchParams.set("size", currentTvSize);
+  if (tvOn) u.searchParams.set("on", "1");
   return u.toString();
 }
 function showQR() {
@@ -408,11 +578,33 @@ let lastUsdzUrl = null;
 async function launchQuickLook() {
   const hint = document.getElementById("ar-hint");
   if (hint) hint.textContent = "Preparing AR…";
+  let restoreTvImage = null;
   try {
     // On mobile there's no render loop, so matrixWorld is never refreshed.
     // USDZExporter reads matrixWorld for each mesh — without this update,
     // every mesh ends up at the origin and the TV covers the stand.
     product.updateMatrixWorld(true);
+
+    // Bake the latest TV-on frame so it lands in the USDZ as the emissive
+    // map. AR Quick Look doesn't replay our canvas, but it does render a
+    // single still — so the "TV on" state still reads correctly in AR.
+    //
+    // Quick Look samples canvas textures rotated 180° relative to the live
+    // Three.js render, so we swap the texture's image for a pre-rotated
+    // copy just for the duration of the export, then swap it back.
+    if (tvOn) {
+      drawTvFrame(tvAnimTime || 0);
+      const rotated = document.createElement("canvas");
+      rotated.width = tvCanvas.width;
+      rotated.height = tvCanvas.height;
+      const rctx = rotated.getContext("2d");
+      rctx.translate(rotated.width, rotated.height);
+      rctx.rotate(Math.PI);
+      rctx.drawImage(tvCanvas, 0, 0);
+      restoreTvImage = tvTexture.image;
+      tvTexture.image = rotated;
+      tvTexture.needsUpdate = true;
+    }
 
     const exportRoot = product.clone(true);
     exportRoot.updateMatrixWorld(true);
@@ -438,6 +630,11 @@ async function launchQuickLook() {
   } catch (e) {
     console.error("USDZ export failed", e);
     if (hint) hint.textContent = "Couldn't open AR: " + e.message;
+  } finally {
+    if (restoreTvImage) {
+      tvTexture.image = restoreTvImage;
+      tvTexture.needsUpdate = true;
+    }
   }
 }
 

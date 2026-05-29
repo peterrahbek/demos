@@ -57,6 +57,7 @@
     }
     .stage-overlay button[aria-pressed="false"] .dot{background:transparent;box-shadow:inset 0 0 0 1.4px var(--ink-45)}
     .stage-overlay button[aria-pressed="false"]{color:var(--ink-45)}
+    .stage-overlay .bolt{font-size:13px;line-height:1;width:13px;text-align:center;color:inherit}
 
     /* Right column */
     .info{padding:64px 56px 56px;max-width:560px;display:flex;flex-direction:column;gap:18px}
@@ -190,8 +191,11 @@
     <section class="stage" aria-label="3D preview">
       <canvas id="viewer"></canvas>
       <div class="stage-overlay">
-        <button id="tv-toggle" type="button" aria-pressed="true">
-          <span class="dot"></span>50" TV
+        <button id="tv-cycle" type="button" aria-pressed="true" title="Click to change TV size or hide">
+          <span class="dot"></span><span id="tv-label">50" TV</span>
+        </button>
+        <button id="tv-power" type="button" aria-pressed="false" title="Turn the TV on">
+          <span class="bolt">⏻</span><span id="tv-power-label">Power</span>
         </button>
         <span>Drag to rotate</span>
       </div>
