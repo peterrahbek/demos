@@ -280,15 +280,15 @@ function drawTvFrame(t) {
 drawTvFrame(0);
 
 // TV sizes (m) for the front-face overlay plane. After the 180° flip the
-// camera sees the GLB's flat back face (full outer extent). Sizing the
-// overlay to the GLB's original inner-screen face (the smaller, recessed
-// rectangle) leaves the outer rim visible around the screen as the bezel.
+// camera sees the GLB's flat back face (full outer extent). The GLB only
+// models a vertical bezel (~16.5 mm top/bottom); the same absolute inset
+// applied to left/right gives a uniform black border on every side.
 // Numbers measured directly from each TV mesh's vertex layers.
 const TV_FACE = {
-  "40": { w: 0.942, h: 0.519, y: 0.73 },
-  "50": { w: 1.167, h: 0.645, y: 0.79 },
-  "60": { w: 1.386, h: 0.773, y: 0.85 },
-  "70": { w: 1.627, h: 0.930, y: 0.93 },
+  "40": { w: 0.909, h: 0.519, y: 0.73 },
+  "50": { w: 1.134, h: 0.645, y: 0.79 },
+  "60": { w: 1.353, h: 0.773, y: 0.85 },
+  "70": { w: 1.594, h: 0.930, y: 0.93 },
 };
 const TV_DEPTH_HALF = 0.0175;   // all TV slabs are ~3.5cm deep
 
