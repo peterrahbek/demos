@@ -279,15 +279,16 @@ function drawTvFrame(t) {
 // Seed an initial frame so the USDZ export has something to bake
 drawTvFrame(0);
 
-// TV sizes (m) for the front-face overlay plane. w/h are the inner screen
-// dimensions inside the bezel — derived from the GLB's recessed front layer.
-// y is the vertical centre on the stand — bigger screens ride higher so
-// their bottom doesn't dangle past the casters.
+// TV sizes (m) for the front-face overlay plane. After the 180° flip the
+// camera sees the GLB's flat back face (full outer extent). Sizing the
+// overlay to the GLB's original inner-screen face (the smaller, recessed
+// rectangle) leaves the outer rim visible around the screen as the bezel.
+// Numbers measured directly from each TV mesh's vertex layers.
 const TV_FACE = {
-  "40": { w: 0.940, h: 0.525, y: 0.73 },
+  "40": { w: 0.942, h: 0.519, y: 0.73 },
   "50": { w: 1.167, h: 0.645, y: 0.79 },
-  "60": { w: 1.386, h: 0.766, y: 0.85 },
-  "70": { w: 1.627, h: 0.915, y: 0.93 },
+  "60": { w: 1.386, h: 0.773, y: 0.85 },
+  "70": { w: 1.627, h: 0.930, y: 0.93 },
 };
 const TV_DEPTH_HALF = 0.0175;   // all TV slabs are ~3.5cm deep
 
