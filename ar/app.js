@@ -185,6 +185,14 @@ const assetsReady = Promise.all([
   for (const [size, gltf] of Object.entries(tvGltfs)) {
     const tv = gltf.scene;
     tv.userData.size = size;
+
+    // The TV GLBs were authored with the flat screen face on -Z and the
+    // beveled back on +Z. Rotate the inner mesh node 180° around Y so the
+    // screen face points at +Z (toward the front of the stand) instead of
+    // into the stand body. We rotate only the GLB node, not the wrapping
+    // `tv` group, so the overlay we add below stays at the screen side.
+    for (const child of tv.children) child.rotation.y = Math.PI;
+
     tv.traverse((o) => {
       if (!o.isMesh) return;
       o.castShadow = true; o.receiveShadow = true;
