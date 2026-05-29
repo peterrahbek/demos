@@ -2,279 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#f4f1ec" />
-  <title>Moon Rollin' — Ultra Marine · Pedestal</title>
-  <link rel="preconnect" href="https://rsms.me" crossorigin />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>You must be lost</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" />
   <link rel="icon" href="data:," />
   <style>
-    :root{
-      --bg:#f4f1ec;
-      --stage:#ece7df;
-      --ink:#111;
-      --ink-65:rgba(17,17,17,.65);
-      --ink-45:rgba(17,17,17,.45);
-      --ink-10:rgba(17,17,17,.10);
-      --ink-06:rgba(17,17,17,.06);
-      --serif:"Instrument Serif","Times New Roman",serif;
-      --sans:"Inter","Helvetica Neue",Helvetica,Arial,sans-serif;
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      background:#f4f1ec;
+      color:#111;
+      font-family:"Instrument Serif","Times New Roman",serif;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:32px;text-align:center;
     }
-    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-    html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-weight:400;letter-spacing:-.005em;overscroll-behavior:none;-webkit-font-smoothing:antialiased}
-    a{color:inherit}
-    button{font:inherit}
-
-    /* ─── Header (desktop + mobile share) ─── */
-    .site-header{
-      position:sticky;top:0;z-index:30;background:var(--bg);
-      display:flex;align-items:center;justify-content:space-between;
-      padding:18px 28px;border-bottom:1px solid var(--ink-06);
+    h1{
+      font-size:clamp(48px,12vw,128px);
+      line-height:.95;font-weight:400;letter-spacing:-.015em;
+      max-width:14ch;
     }
-    .wordmark{font-weight:600;letter-spacing:.18em;font-size:12px;text-transform:uppercase}
-    .nav-right{font-size:12px;color:var(--ink-65);letter-spacing:.04em;text-transform:uppercase}
-
-    /* ─── Desktop layout ─── */
-    .desktop{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(420px,1fr);min-height:calc(100dvh - 57px)}
-
-    /* Stage */
-    .stage{position:relative;background:var(--stage);overflow:hidden}
-    #viewer{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
-    .stage-overlay{
-      position:absolute;left:0;right:0;bottom:24px;display:flex;justify-content:center;gap:18px;
-      pointer-events:none;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-45);
+    h1 em{color:rgba(17,17,17,.55)}
+    p{
+      font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+      font-size:14px;letter-spacing:.04em;text-transform:uppercase;
+      color:rgba(17,17,17,.55);
+      margin-top:28px;
     }
-    .stage-overlay > *{pointer-events:auto}
-    .stage-overlay button{
-      background:transparent;border:0;cursor:pointer;color:inherit;font:inherit;letter-spacing:inherit;
-      display:inline-flex;align-items:center;gap:6px;padding:6px 0;
-    }
-    .stage-overlay button .dot{
-      width:7px;height:7px;border-radius:999px;background:var(--ink);transition:background .15s;
-    }
-    .stage-overlay button[aria-pressed="false"] .dot{background:transparent;box-shadow:inset 0 0 0 1.4px var(--ink-45)}
-    .stage-overlay button[aria-pressed="false"]{color:var(--ink-45)}
-    .stage-overlay .bolt{font-size:13px;line-height:1;width:13px;text-align:center;color:inherit}
-
-    /* Right column */
-    .info{padding:64px 56px 56px;max-width:560px;display:flex;flex-direction:column;gap:18px}
-    .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-65)}
-    h1.title{
-      font-family:var(--serif);font-weight:400;font-style:normal;
-      font-size:54px;line-height:.98;letter-spacing:-.01em;margin:0;
-    }
-    h1.title .variant{display:block;font-style:italic;color:var(--ink-65)}
-    .price{font-size:15px;letter-spacing:.01em;margin-top:-2px}
-
-    .colors{display:flex;flex-direction:column;gap:10px;margin-top:6px}
-    .colors-row{display:flex;gap:10px}
-    .swatch{
-      width:30px;height:30px;border-radius:999px;border:0;cursor:pointer;padding:0;
-      position:relative;transition:transform .15s ease;
-      box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
-    }
-    .swatch:hover{transform:scale(1.06)}
-    .swatch[aria-selected="true"]::after{
-      content:"";position:absolute;inset:-5px;border-radius:999px;border:1px solid var(--ink);
-    }
-    .color-name{font-size:13px;color:var(--ink-65)}
-
-    .lede{font-size:14px;line-height:1.6;color:#222;margin:8px 0 0;max-width:46ch}
-
-    .actions{display:flex;flex-direction:column;gap:12px;margin-top:14px}
-    .btn-cart{
-      appearance:none;border:0;background:var(--ink);color:#fff;
-      padding:18px 22px;font-size:13px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;
-      border-radius:2px;display:flex;align-items:center;justify-content:center;gap:14px;
-    }
-    .btn-cart:hover{background:#000}
-    .btn-cart .price-tag{opacity:.7;font-weight:400}
-
-    .ar-link{
-      display:inline-flex;align-items:center;gap:8px;align-self:flex-start;
-      background:transparent;border:0;padding:6px 0;cursor:pointer;
-      font-size:13px;letter-spacing:.01em;color:var(--ink);
-      border-bottom:1px solid var(--ink);transition:opacity .2s ease;
-    }
-    .ar-link:hover{opacity:.6}
-    .ar-link svg{width:14px;height:14px}
-
-    .specs{margin-top:28px;border-top:1px solid var(--ink-10)}
-    .spec{
-      display:grid;grid-template-columns:130px 1fr;gap:18px;
-      padding:14px 0;border-bottom:1px solid var(--ink-10);font-size:13px;
-    }
-    .spec dt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-65);margin:0}
-    .spec dd{margin:0;color:#222;line-height:1.55}
-
-    /* ─── Mobile layout (UA-set) ─── */
-    .mobile{display:none}
-
-    body[data-mode="mobile"] .desktop{display:none}
-    body[data-mode="mobile"] .mobile{display:flex;flex-direction:column;min-height:calc(100dvh - 57px)}
-
-    .mobile{padding:0 22px 32px;gap:0}
-    .mobile .hero{
-      width:100%;aspect-ratio:4/5;background:var(--stage);
-      background-image:url("./assets/hero.png");background-size:contain;background-position:center;background-repeat:no-repeat;
-      border-radius:6px;margin-top:18px;
-    }
-    .mobile .meta{padding:24px 4px 0;display:flex;flex-direction:column;gap:6px}
-    .mobile .eyebrow{margin:0}
-    .mobile h1.title{font-size:42px}
-    .mobile .price{margin-top:6px}
-    .mobile .spacer{flex:1;min-height:24px}
-    .mobile .ar-cta{
-      appearance:none;width:100%;background:var(--ink);color:#fff;border:0;padding:20px 18px;cursor:pointer;
-      border-radius:2px;font-size:13px;letter-spacing:.18em;text-transform:uppercase;
-      display:inline-flex;align-items:center;justify-content:center;gap:12px;
-    }
-    .mobile .ar-cta svg{width:16px;height:16px}
-    .mobile .ar-hint{font-size:11px;color:var(--ink-65);text-align:center;margin-top:10px;line-height:1.5}
-
-    /* ─── QR modal ─── */
-    .modal{
-      position:fixed;inset:0;display:none;align-items:center;justify-content:center;
-      background:rgba(17,17,17,.45);backdrop-filter:blur(6px);z-index:60;padding:20px;
-    }
-    .modal.open{display:flex}
-    .modal-card{
-      background:var(--bg);border-radius:6px;max-width:380px;width:100%;
-      padding:30px 30px 24px;text-align:center;position:relative;
-    }
-    .modal-card h2{
-      font-family:var(--serif);font-weight:400;font-size:32px;line-height:1;margin:0 0 8px;letter-spacing:-.01em;
-    }
-    .modal-card p{font-size:13px;color:var(--ink-65);margin:0 0 22px;line-height:1.55}
-    .qr-frame{
-      background:#fff;border:1px solid var(--ink-10);border-radius:4px;padding:16px;margin:0 auto 18px;
-      width:fit-content;
-    }
-    .qr-frame canvas, .qr-frame svg{display:block;width:200px;height:200px}
-    .modal-url{
-      font-size:11px;color:var(--ink-65);word-break:break-all;letter-spacing:.01em;
-      padding:0 8px;line-height:1.5;
-    }
-    .modal-close{
-      position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:999px;
-      background:transparent;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
-      color:var(--ink-65);
-    }
-    .modal-close:hover{color:var(--ink);background:var(--ink-06)}
-
-    /* ─── Specs section on mobile is omitted ─── */
-    .footer-note{
-      font-size:11px;color:var(--ink-45);padding:18px 28px;border-top:1px solid var(--ink-06);
-    }
-    body[data-mode="mobile"] .footer-note{display:none}
-
-    /* Tight layouts on narrow desktops */
-    @media (max-width:1024px){
-      body[data-mode="desktop"] .desktop{grid-template-columns:1fr}
-      body[data-mode="desktop"] .stage{min-height:60vh;aspect-ratio:auto}
-      body[data-mode="desktop"] .info{padding:36px 28px 48px}
-      body[data-mode="desktop"] h1.title{font-size:44px}
-    }
+    p a{color:#111;text-decoration:underline;text-underline-offset:4px}
   </style>
 </head>
 <body>
-  <header class="site-header">
-    <div class="wordmark">Pedestal</div>
-    <div class="nav-right">TV Stands / Moon Rollin'</div>
-  </header>
-
-  <!-- ─────────── DESKTOP ─────────── -->
-  <main class="desktop">
-    <section class="stage" aria-label="3D preview">
-      <canvas id="viewer"></canvas>
-      <div class="stage-overlay">
-        <button id="tv-cycle" type="button" aria-pressed="true" title="Click to change TV size or hide">
-          <span class="dot"></span><span id="tv-label">50" TV</span>
-        </button>
-        <button id="tv-power" type="button" aria-pressed="false" title="Turn the TV on">
-          <span class="bolt">⏻</span><span id="tv-power-label">Power</span>
-        </button>
-        <span>Drag to rotate</span>
-      </div>
-    </section>
-
-    <aside class="info">
-      <div class="eyebrow">Pipe Series · Stands w/ Wheels</div>
-      <h1 class="title">Moon Rollin'<span class="variant">Ultra Marine</span></h1>
-      <div class="price">€340,00 EUR</div>
-
-      <div class="colors">
-        <div class="colors-row" role="listbox" aria-label="Color">
-          <button class="swatch" data-color="ultra-marine" style="background:#1d40b3" aria-selected="true" title="Ultra Marine"></button>
-          <button class="swatch" data-color="bubble-gum" style="background:#f4a8b8" aria-selected="false" title="Bubble Gum"></button>
-          <button class="swatch" data-color="apricot" style="background:#e89a62" aria-selected="false" title="Apricot"></button>
-          <button class="swatch" data-color="chrome" style="background:linear-gradient(135deg,#fafafa 0%,#d6d8db 35%,#7a7d82 55%,#d6d8db 75%,#fafafa 100%)" aria-selected="false" title="Chrome"></button>
-        </div>
-        <div class="color-name" id="color-name">Ultra Marine</div>
-      </div>
-
-      <p class="lede">A functional TV stand on wheels with soft, curved lines that contrast its sturdy steel construction. Roll it from one room to another. Includes wheels, VESA-kit and mounting kit.</p>
-
-      <div class="actions">
-        <button class="btn-cart" type="button">Add to bag<span class="price-tag">€340,00</span></button>
-        <button class="ar-link" id="ar-link-desktop" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5 12 4l9 4.5v7L12 20l-9-4.5v-7z"/><path d="M3 8.5 12 13l9-4.5M12 13v7"/></svg>
-          Show in your space
-        </button>
-      </div>
-
-      <dl class="specs">
-        <div class="spec"><dt>Dimensions</dt><dd>H 107 × W 78 × D 54 cm</dd></div>
-        <div class="spec"><dt>Weight</dt><dd>7.5 kg</dd></div>
-        <div class="spec"><dt>Material</dt><dd>Powder-coated steel with satin finish · PU-tread wheels</dd></div>
-        <div class="spec"><dt>Screen size</dt><dd>40–70" (recommended 50–60")</dd></div>
-        <div class="spec"><dt>Max load</dt><dd>50 kg · VESA standard</dd></div>
-      </dl>
-    </aside>
-  </main>
-
-  <!-- ─────────── MOBILE ─────────── -->
-  <main class="mobile" aria-hidden="true">
-    <div class="hero"></div>
-    <div class="meta">
-      <div class="eyebrow">Pipe Series · Stands w/ Wheels</div>
-      <h1 class="title">Moon Rollin'<span class="variant">Ultra Marine</span></h1>
-      <div class="price">€340,00 EUR</div>
-    </div>
-    <div class="spacer"></div>
-    <button class="ar-cta" id="ar-link-mobile" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5 12 4l9 4.5v7L12 20l-9-4.5v-7z"/><path d="M3 8.5 12 13l9-4.5M12 13v7"/></svg>
-      View in your space
-    </button>
-    <div class="ar-hint" id="ar-hint">Tap to open in AR. Move your phone slowly, then drag to place the stand.</div>
-  </main>
-
-  <div class="footer-note">Models: Pedestal Studio Moon Regular + Wheels Standard + Screen 50". Reference: pedestal.com/products/moon-rollin-ultra-marine</div>
-
-  <!-- ─────────── QR modal (desktop) ─────────── -->
-  <div class="modal" id="qr-modal" role="dialog" aria-modal="true" aria-labelledby="qr-title">
-    <div class="modal-card">
-      <button class="modal-close" id="qr-close" aria-label="Close">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-      <h2 id="qr-title">View on your phone</h2>
-      <p>Scan with your phone's camera to open AR in your space.</p>
-      <div class="qr-frame" id="qr-frame"></div>
-      <div class="modal-url" id="qr-url"></div>
-    </div>
-  </div>
-
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "./vendor/three/build/three.module.js",
-      "three/addons/": "./vendor/three/examples/jsm/"
-    }
-  }
-  </script>
-  <script type="module" src="./app.js"></script>
+  <h1>You must be <em>lost.</em></h1>
+  <p>Looking for the AR demo? It's at <a href="./ar/">/ar/</a>.</p>
 </body>
 </html>
