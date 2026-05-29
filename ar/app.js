@@ -107,10 +107,9 @@ const loadGLB = (path) =>
 
 function tuneMaterial(mat) {
   if (!mat) return;
-  // Force single-sided. USDZExporter logs a warning per double-sided material
-  // and Quick Look renders the back face as black, which shows through any
-  // perforations in the model.
-  mat.side = THREE.FrontSide;
+  // Keep whatever side the GLB specifies — Pedestal's body authors thin
+  // perforated VESA strips as double-sided sheets, and forcing FrontSide
+  // makes them invisible from half the angles in AR.
   if (/metal|screw/i.test(mat.name)) {
     mat.metalness = 0.85; mat.roughness = 0.35;
   } else {
@@ -127,7 +126,6 @@ function instanceWheelsInto(group, proto, matSink) {
         o.castShadow = true; o.receiveShadow = true;
         if (o.material) {
           o.material = o.material.clone();
-          o.material.side = THREE.FrontSide;
           if (/wheel/i.test(o.material.name)) matSink.push(o.material);
         }
       });
@@ -154,7 +152,6 @@ const assetsReady = Promise.all([
   body.traverse((o) => {
     if (!o.isMesh) return;
     o.castShadow = true; o.receiveShadow = true;
-    if (o.material) o.material.side = THREE.FrontSide;
     if (o.material?.name === STRUCTURE_MAT_NAME) {
       structureMat = o.material;
       const g = o.geometry;
@@ -192,9 +189,9 @@ const assetsReady = Promise.all([
 
     // The TV GLBs were authored with the flat screen face on -Z and the
     // beveled back on +Z. Rotate the inner mesh node 180° around Y so the
-    // screen face points at +Z (toward the front of the stand) instead of
-    // into the stand body. We rotate only the GLB node, not the wrapping
-    // `tv` group, so the overlay we add below stays at the screen side.
+    // screen face points at +Z. We rotate the GLB child rather than the
+    // wrapping `tv` group so the overlay we add below stays at the screen
+    // side.
     for (const child of tv.children) child.rotation.y = Math.PI;
 
     tv.traverse((o) => {
@@ -203,6 +200,14 @@ const assetsReady = Promise.all([
       o.material = makeTvBoxMaterial();
     });
     tv.position.set(0, TV_FACE[size].y, 0.038);
+    tv.updateMatrixWorld(true);
+
+    // The screen meshes are not perfectly symmetric around their local origin
+    // (40" is +3.4 mm in y, others smaller). Align the overlay to the actual
+    // bounding-box centre of the visible body so the bezel reads even on all
+    // four sides rather than thick on top + thin on bottom.
+    const meshBox = new THREE.Box3().setFromObject(tv.children[0]);
+    const meshCentre = meshBox.getCenter(new THREE.Vector3());
 
     const face = TV_FACE[size];
     const overlay = new THREE.Mesh(
@@ -210,7 +215,11 @@ const assetsReady = Promise.all([
       makeScreenOverlayMaterial(),
     );
     overlay.name = "screen-overlay";
-    overlay.position.set(0, 0, TV_DEPTH_HALF + 0.001);
+    overlay.position.set(
+      meshCentre.x - tv.position.x,
+      meshCentre.y - tv.position.y,
+      TV_DEPTH_HALF + 0.001,
+    );
     overlay.visible = false;
     tv.add(overlay);
 
