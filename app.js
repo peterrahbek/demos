@@ -24,6 +24,30 @@ const COLORS = {
 };
 const STRUCTURE_MAT_NAME = "UltraMarine.Structure.001";
 
+// ─── Texture library (Pedestal Studio baked PBR atlases) ─────────────────
+const texLoader = new THREE.TextureLoader();
+function loadTex(path, { srgb = false } = {}) {
+  const t = texLoader.load(path);
+  t.flipY = false;
+  t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  return t;
+}
+const TEX = {
+  bodyBase: {
+    "ultra-marine": loadTex("./assets/moon-regular-ultra-marine.jpg", { srgb: true }),
+    "bubble-gum":   loadTex("./assets/moon-regular-bubble-gum.jpg",   { srgb: true }),
+    "apricot":      loadTex("./assets/moon-regular-apricot.jpg",      { srgb: true }),
+    "chrome":       loadTex("./assets/moon-regular-chrome.jpg",       { srgb: true }),
+  },
+  bodyMatteMet:  loadTex("./assets/moon-regular-matte-metalness.jpg"),
+  bodyChromeMet: loadTex("./assets/moon-regular-chrome-metalness.jpg"),
+  bodyChromeRgh: loadTex("./assets/moon-regular-chrome-roughness.jpg"),
+  bodyAo:        loadTex("./assets/moon-regular-ao.jpg"),
+  wheelChromeBase: loadTex("./assets/wheels-chrome.jpg", { srgb: true }),
+  wheelChromeMet:  loadTex("./assets/wheels-chrome-metalness.jpg"),
+  wheelChromeRgh: loadTex("./assets/wheels-chrome-roughness.jpg"),
+};
+
 // ─── Moon Rollin' geometry constants ──────────────────────────────────────
 const DIM = {
   legCornerX: 0.378,
@@ -43,12 +67,18 @@ const product = new THREE.Group();
 product.name = "moonRollin";
 productPivot.add(product);
 
-let structureMat = null;
-const wheelMats = [];
+let structureMat = null;            // body PBR (shared across all colours)
+let screwMat = null;                // body metal accents
+const matteWheelMats = [];          // cloned wheel materials on the standard caster
+const chromeWheelMats = [];         // cloned wheel materials on the chrome caster
 
-const wheelGroup = new THREE.Group();
-wheelGroup.name = "wheels";
-product.add(wheelGroup);
+const matteWheelGroup = new THREE.Group();
+matteWheelGroup.name = "matteWheels";
+product.add(matteWheelGroup);
+const chromeWheelGroup = new THREE.Group();
+chromeWheelGroup.name = "chromeWheels";
+chromeWheelGroup.visible = false;
+product.add(chromeWheelGroup);
 
 const bodyContainer = new THREE.Group();
 bodyContainer.name = "body";
@@ -77,47 +107,66 @@ function tuneMaterial(mat) {
   }
 }
 
+function instanceWheelsInto(group, proto, matSink) {
+  for (const x of [-DIM.legCornerX, DIM.legCornerX]) {
+    for (const z of [-DIM.legCornerZ, DIM.legCornerZ]) {
+      const inst = proto.clone(true);
+      inst.traverse((o) => {
+        if (!o.isMesh) return;
+        o.castShadow = true; o.receiveShadow = true;
+        if (o.material) {
+          o.material = o.material.clone();
+          if (/wheel/i.test(o.material.name)) matSink.push(o.material);
+        }
+      });
+      inst.rotation.y = Math.atan2(z, x);
+      inst.position.set(x, 0, z);
+      group.add(inst);
+    }
+  }
+}
+
 const assetsReady = Promise.all([
   loadGLB("./assets/moon-regular.glb"),
   loadGLB("./assets/wheels-standard.glb"),
+  loadGLB("./assets/wheels-chrome.glb"),
   loadGLB("./assets/screen-50.glb"),
-]).then(([bodyGltf, wheelGltf, tvGltf]) => {
-  // Body
+]).then(([bodyGltf, matteWheelGltf, chromeWheelGltf, tvGltf]) => {
+  // Body — capture the structure + screw materials so the colour swap can
+  // hot-swap maps. The GLB ships with no maps; we drive the look entirely
+  // from the Pedestal-baked atlases.
   const body = bodyGltf.scene;
   body.traverse((o) => {
     if (!o.isMesh) return;
     o.castShadow = true; o.receiveShadow = true;
     if (o.material?.name === STRUCTURE_MAT_NAME) {
       structureMat = o.material;
-      structureMat.map = null;
-      structureMat.color.setHex(COLORS["ultra-marine"].hex);
+      // Sampling the AO map needs uv2 in three.js < r158-ish. Newer builds
+      // can sample aoMap from uv1 too — just keep both paths covered.
+      const g = o.geometry;
+      if (g.attributes.uv && !g.attributes.uv1) {
+        g.setAttribute("uv1", g.attributes.uv);
+      }
+    } else if (/metal|screw/i.test(o.material?.name)) {
+      screwMat = o.material;
+      screwMat.metalness = 0.9;
+      screwMat.roughness = 0.32;
     }
-    tuneMaterial(o.material);
   });
   bodyContainer.add(body);
 
-  // Wheels — instance the single caster at each leg corner
-  const wheelProto = wheelGltf.scene;
-  for (const x of [-DIM.legCornerX, DIM.legCornerX]) {
-    for (const z of [-DIM.legCornerZ, DIM.legCornerZ]) {
-      const inst = wheelProto.clone(true);
-      inst.traverse((o) => {
-        if (!o.isMesh) return;
-        o.castShadow = true; o.receiveShadow = true;
-        if (o.material) {
-          o.material = o.material.clone();
-          if (/wheel/i.test(o.material.name)) {
-            o.material.map = null;
-            o.material.color.setHex(COLORS["ultra-marine"].hex);
-            wheelMats.push(o.material);
-          }
-          tuneMaterial(o.material);
-        }
-      });
-      inst.rotation.y = Math.atan2(z, x);
-      inst.position.set(x, 0, z);
-      wheelGroup.add(inst);
-    }
+  instanceWheelsInto(matteWheelGroup, matteWheelGltf.scene, matteWheelMats);
+  instanceWheelsInto(chromeWheelGroup, chromeWheelGltf.scene, chromeWheelMats);
+
+  // Pre-configure chrome wheel materials with the chrome PBR maps once
+  for (const m of chromeWheelMats) {
+    m.map = TEX.wheelChromeBase;
+    m.metalnessMap = TEX.wheelChromeMet;
+    m.roughnessMap = TEX.wheelChromeRgh;
+    m.metalness = 1.0;
+    m.roughness = 1.0;
+    m.color.setHex(0xffffff);
+    m.needsUpdate = true;
   }
 
   // 50" TV
@@ -138,17 +187,52 @@ const assetsReady = Promise.all([
 let currentColor = "ultra-marine";
 
 // ─── Colour swapping ──────────────────────────────────────────────────────
+// The Pedestal Studio architecture uses a single body GLB with a shared UV
+// layout and per-colour baked PBR atlases. We swap the map + metalness/
+// roughness maps on the body, and swap the entire wheel set when the user
+// picks chrome (chrome wheels are a different mesh).
 function setColor(key) {
   if (!COLORS[key]) return;
   currentColor = key;
-  const { hex, metalness, roughness } = COLORS[key];
-  for (const m of [structureMat, ...wheelMats]) {
-    if (!m) continue;
-    m.color.setHex(hex);
-    m.metalness = metalness;
-    m.roughness = roughness;
-    m.needsUpdate = true;
+  const isChrome = key === "chrome";
+
+  if (structureMat) {
+    structureMat.map = TEX.bodyBase[key];
+    structureMat.aoMap = TEX.bodyAo;
+    if (isChrome) {
+      structureMat.metalnessMap = TEX.bodyChromeMet;
+      structureMat.roughnessMap = TEX.bodyChromeRgh;
+    } else {
+      structureMat.metalnessMap = TEX.bodyMatteMet;
+      structureMat.roughnessMap = null;
+    }
+    // Scalar multipliers — base maps already encode the look, so use 1.0 and
+    // let the metalness/roughness maps shape it. Roughness scalar leans matte
+    // for non-chrome to soften lighting bounce.
+    structureMat.metalness = 1.0;
+    structureMat.roughness = isChrome ? 1.0 : 0.85;
+    structureMat.color.setHex(0xffffff);
+    structureMat.needsUpdate = true;
   }
+
+  // Toggle which wheel set is visible (chrome wheels are a separate mesh)
+  matteWheelGroup.visible = !isChrome;
+  chromeWheelGroup.visible = isChrome;
+
+  // Matte wheels don't ship with per-colour atlases in this drop, so we tint
+  // their structure material with the colour hex as a stand-in.
+  if (!isChrome) {
+    for (const m of matteWheelMats) {
+      m.map = null;
+      m.metalnessMap = null;
+      m.roughnessMap = null;
+      m.color.setHex(COLORS[key].hex);
+      m.metalness = 0.40;
+      m.roughness = 0.55;
+      m.needsUpdate = true;
+    }
+  }
+
   document.querySelectorAll(".swatch").forEach((s) => {
     s.setAttribute("aria-selected", String(s.dataset.color === key));
   });
