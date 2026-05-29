@@ -194,7 +194,7 @@ const assetsReady = Promise.all([
 
     const face = TV_FACE[size];
     const overlay = new THREE.Mesh(
-      new THREE.PlaneGeometry(face.w - 2 * TV_FACE_INSET, face.h - 2 * TV_FACE_INSET),
+      new THREE.PlaneGeometry(face.w, face.h),
       makeScreenOverlayMaterial(),
     );
     overlay.name = "screen-overlay";
@@ -271,17 +271,17 @@ function drawTvFrame(t) {
 // Seed an initial frame so the USDZ export has something to bake
 drawTvFrame(0);
 
-// TV sizes (m) for the front-face overlay plane. y is the vertical centre on
-// the stand — bigger screens ride higher so their bottom doesn't dangle
-// past the casters. Approximation of "VESA bottom at ~0.45m".
+// TV sizes (m) for the front-face overlay plane. w/h are the inner screen
+// dimensions inside the bezel — derived from the GLB's recessed front layer.
+// y is the vertical centre on the stand — bigger screens ride higher so
+// their bottom doesn't dangle past the casters.
 const TV_FACE = {
-  "40": { w: 0.942, h: 0.552, y: 0.73 },
-  "50": { w: 1.167, h: 0.678, y: 0.79 },
-  "60": { w: 1.386, h: 0.806, y: 0.85 },
-  "70": { w: 1.627, h: 0.963, y: 0.93 },
+  "40": { w: 0.940, h: 0.525, y: 0.73 },
+  "50": { w: 1.167, h: 0.645, y: 0.79 },
+  "60": { w: 1.386, h: 0.766, y: 0.85 },
+  "70": { w: 1.627, h: 0.915, y: 0.93 },
 };
 const TV_DEPTH_HALF = 0.0175;   // all TV slabs are ~3.5cm deep
-const TV_FACE_INSET = 0.04;     // bezel inset so the canvas reads as a screen
 
 function makeTvBoxMaterial() {
   // The TV body — slab and bezel. Stays consistently dark.
@@ -614,16 +614,30 @@ let lastUsdzUrl = null;
 async function launchQuickLook() {
   const hint = document.getElementById("ar-hint");
   if (hint) hint.textContent = "Preparing AR…";
+  let restoreTvImage = null;
   try {
     // On mobile there's no render loop, so matrixWorld is never refreshed.
     // USDZExporter reads matrixWorld for each mesh — without this update,
     // every mesh ends up at the origin and the TV covers the stand.
     product.updateMatrixWorld(true);
 
-    // Bake the latest TV-on frame so it lands in the USDZ as the emissive
-    // map. AR Quick Look doesn't replay our canvas, but it does render a
-    // single still — so the "TV on" state still reads correctly in AR.
-    if (tvOn) drawTvFrame(tvAnimTime || 0);
+    // Bake the latest TV-on frame, then horizontally mirror it for the
+    // USDZ. Quick Look samples canvas textures with the U axis flipped vs
+    // Three.js's live render — without the pre-mirror the wordmark reads
+    // backwards on iPhone.
+    if (tvOn) {
+      drawTvFrame(tvAnimTime || 0);
+      const mirrored = document.createElement("canvas");
+      mirrored.width = tvCanvas.width;
+      mirrored.height = tvCanvas.height;
+      const mctx = mirrored.getContext("2d");
+      mctx.translate(mirrored.width, 0);
+      mctx.scale(-1, 1);
+      mctx.drawImage(tvCanvas, 0, 0);
+      restoreTvImage = tvTexture.image;
+      tvTexture.image = mirrored;
+      tvTexture.needsUpdate = true;
+    }
 
     const exportRoot = product.clone(true);
     exportRoot.updateMatrixWorld(true);
@@ -649,6 +663,11 @@ async function launchQuickLook() {
   } catch (e) {
     console.error("USDZ export failed", e);
     if (hint) hint.textContent = "Couldn't open AR: " + e.message;
+  } finally {
+    if (restoreTvImage) {
+      tvTexture.image = restoreTvImage;
+      tvTexture.needsUpdate = true;
+    }
   }
 }
 
