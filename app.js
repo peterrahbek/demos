@@ -4,8 +4,15 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { USDZExporter } from "three/addons/exporters/USDZExporter.js";
+import qrcode from "./vendor/qrcode-generator/qrcode.mjs";
 
-// Pedestal Studio color values (sRGB) for the Ultra Marine line
+// ─── Mode detection ───────────────────────────────────────────────────────
+const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const isMobile = isiOS || /Android|Mobile/i.test(navigator.userAgent);
+document.body.dataset.mode = isMobile ? "mobile" : "desktop";
+
+// ─── Palette ──────────────────────────────────────────────────────────────
 const COLORS = {
   "ultra-marine": { hex: 0x1d40b3, name: "Ultra Marine" },
   "charcoal":     { hex: 0x26272a, name: "Charcoal" },
@@ -14,12 +21,8 @@ const COLORS = {
 };
 const STRUCTURE_MAT_NAME = "UltraMarine.Structure.001";
 
-// Moon Rollin' geometry constants
-// - body GLB legs end at y=0.063 in body-local with corners at (±0.378, ±0.262)
-// - wheels-standard GLB swivel mount top is at y≈0.078 in wheel-local
-// So bodyContainer sits at y = 0.078 - 0.063 = 0.015 to land the legs on the casters.
+// ─── Moon Rollin' geometry constants ──────────────────────────────────────
 const DIM = {
-  totalHeight: 1.07,
   legCornerX: 0.378,
   legCornerZ: 0.262,
   legBottomY: 0.063,
@@ -27,71 +30,23 @@ const DIM = {
 };
 DIM.bodyLift = DIM.wheelMountY - DIM.legBottomY;
 
-// ─── Scene setup ──────────────────────────────────────────────────────────
-const canvas = document.getElementById("viewer");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.xr.enabled = true;
-
+// ─── Scene assembly (built on both desktop and mobile; mobile uses it for AR
+// export only). Renderer is only created on desktop. ──────────────────────
 const scene = new THREE.Scene();
-scene.background = null;
 
-const pmrem = new THREE.PMREMGenerator(renderer);
-scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.06).texture;
-
-const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 50);
-camera.position.set(2.4, 1.05, 2.1);
-
-// Lights — key + ambient + rim, tuned for satin steel
-const key = new THREE.DirectionalLight(0xfff5e8, 1.7);
-key.position.set(2.5, 3.5, 2);
-key.castShadow = true;
-key.shadow.mapSize.set(1024, 1024);
-key.shadow.camera.near = 0.5;
-key.shadow.camera.far = 8;
-key.shadow.camera.left = -1.5;
-key.shadow.camera.right = 1.5;
-key.shadow.camera.top = 1.5;
-key.shadow.camera.bottom = -1.5;
-key.shadow.bias = -0.0002;
-key.shadow.normalBias = 0.02;
-scene.add(key);
-scene.add(new THREE.AmbientLight(0xc8ddff, 0.35));
-const rim = new THREE.DirectionalLight(0xa9b4c8, 0.55);
-rim.position.set(-2, 2, -1.5);
-scene.add(rim);
-
-// Preview-only floor with a soft contact shadow vibe
-const floor = new THREE.Mesh(
-  new THREE.CircleGeometry(3, 64),
-  new THREE.MeshStandardMaterial({ color: 0xe7e2d9, roughness: 0.95, metalness: 0 }),
-);
-floor.rotation.x = -Math.PI / 2;
-floor.receiveShadow = true;
-floor.name = "previewFloor";
-scene.add(floor);
-
-// ─── Product container ───────────────────────────────────────────────────
 const productPivot = new THREE.Object3D();
 scene.add(productPivot);
 const product = new THREE.Group();
 product.name = "moonRollin";
 productPivot.add(product);
 
-// PBR materials we recolor on swatch click
-let structureMat = null;   // body frame (UltraMarine.Structure.001)
-const wheelMats = [];      // each cloned caster's tintable material
+let structureMat = null;
+const wheelMats = [];
 
 const wheelGroup = new THREE.Group();
 wheelGroup.name = "wheels";
 product.add(wheelGroup);
 
-// Body container sits above wheels so legs land on caster swivel-tops
 const bodyContainer = new THREE.Group();
 bodyContainer.name = "body";
 bodyContainer.position.y = DIM.bodyLift;
@@ -101,15 +56,14 @@ const tvContainer = new THREE.Group();
 tvContainer.name = "tv";
 bodyContainer.add(tvContainer);
 
-// ─── Load the real GLB ────────────────────────────────────────────────────
+// ─── Load all GLBs (parallel) ─────────────────────────────────────────────
 const draco = new DRACOLoader();
 draco.setDecoderPath("./vendor/three/examples/jsm/libs/draco/gltf/");
 const loader = new GLTFLoader();
 loader.setDRACOLoader(draco);
 
-function loadGLB(path) {
-  return new Promise((resolve, reject) => loader.load(path, resolve, undefined, reject));
-}
+const loadGLB = (path) =>
+  new Promise((resolve, reject) => loader.load(path, resolve, undefined, reject));
 
 function tuneMaterial(mat) {
   if (!mat) return;
@@ -120,13 +74,12 @@ function tuneMaterial(mat) {
   }
 }
 
-Promise.all([
+const assetsReady = Promise.all([
   loadGLB("./assets/moon-regular.glb"),
   loadGLB("./assets/wheels-standard.glb"),
   loadGLB("./assets/screen-50.glb"),
 ]).then(([bodyGltf, wheelGltf, tvGltf]) => {
-
-  // ── Body ──
+  // Body
   const body = bodyGltf.scene;
   body.traverse((o) => {
     if (!o.isMesh) return;
@@ -140,10 +93,8 @@ Promise.all([
   });
   bodyContainer.add(body);
 
-  // ── Wheels: instance the single caster GLB at each leg corner ──
+  // Wheels — instance the single caster at each leg corner
   const wheelProto = wheelGltf.scene;
-  // The caster GLB looks down the +Z direction in its local frame. Each leg
-  // corner gets its own clone with materials cloned so we can tint them.
   for (const x of [-DIM.legCornerX, DIM.legCornerX]) {
     for (const z of [-DIM.legCornerZ, DIM.legCornerZ]) {
       const inst = wheelProto.clone(true);
@@ -160,95 +111,27 @@ Promise.all([
           tuneMaterial(o.material);
         }
       });
-      // Swivel a touch so the casters look like they've settled, not aligned
       inst.rotation.y = Math.atan2(z, x);
       inst.position.set(x, 0, z);
       wheelGroup.add(inst);
     }
   }
 
-  // ── 50" TV mounted on the VESA plate ──
+  // 50" TV
   const tv = tvGltf.scene;
   tv.traverse((o) => {
     if (!o.isMesh) return;
     o.castShadow = true; o.receiveShadow = true;
-    // The screen GLB has no materials — give it a TV-style PBR shader
     o.material = new THREE.MeshStandardMaterial({
       color: 0x0c0d10, roughness: 0.18, metalness: 0.15,
       emissive: 0x12182a, emissiveIntensity: 0.25,
     });
   });
-  // After the GLB's built-in 0.01 scale, the TV is ~1.17m × 0.68m × 0.035m.
-  // Mount it centered, at the upper half of the body, just in front of the back plate.
   tv.position.set(0, 0.75, 0.038);
   tvContainer.add(tv);
-
-  // ── Camera framing ── target the body center, pull camera back to fit TV+stand
-  const target = new THREE.Vector3(0, 0.6, 0);
-  controls.target.copy(target);
-  camera.position.set(2.4, 1.05, 2.1);
-  camera.lookAt(target);
-  controls.update();
-}).catch((err) => {
-  console.error("GLB load failed", err);
-  document.getElementById("ar-help").textContent =
-    "Couldn't load the 3D model. Check that assets/*.glb is served.";
 });
 
-// ─── Controls ─────────────────────────────────────────────────────────────
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 0.6, 0);
-controls.enableDamping = true;
-controls.dampingFactor = 0.08;
-controls.minDistance = 1.2;
-controls.maxDistance = 6;
-controls.maxPolarAngle = Math.PI * 0.52;
-controls.minPolarAngle = Math.PI * 0.2;
-controls.autoRotate = true;
-controls.autoRotateSpeed = 0.5;
-controls.update();
-renderer.domElement.addEventListener("pointerdown",
-  () => { controls.autoRotate = false; }, { once: true });
-
-function resize() {
-  const r = canvas.getBoundingClientRect();
-  renderer.setSize(r.width, r.height, false);
-  camera.aspect = r.width / Math.max(1, r.height);
-  camera.updateProjectionMatrix();
-}
-new ResizeObserver(resize).observe(canvas);
-resize();
-
-// ─── Render loop / AR ─────────────────────────────────────────────────────
-let reticle = null, placed = false, hitTestSource = null;
-
-renderer.setAnimationLoop((time, frame) => {
-  if (frame && renderer.xr.isPresenting) {
-    const referenceSpace = renderer.xr.getReferenceSpace();
-    const session = renderer.xr.getSession();
-    if (!hitTestSource) {
-      session.requestReferenceSpace("viewer").then((vs) => {
-        session.requestHitTestSource({ space: vs }).then((src) => { hitTestSource = src; });
-      });
-      session.addEventListener("end", onSessionEnd);
-    }
-    if (hitTestSource && !placed) {
-      const hits = frame.getHitTestResults(hitTestSource);
-      if (hits.length > 0) {
-        const pose = hits[0].getPose(referenceSpace);
-        reticle.visible = true;
-        reticle.matrix.fromArray(pose.transform.matrix);
-      } else {
-        reticle.visible = false;
-      }
-    }
-  } else {
-    controls.update();
-  }
-  renderer.render(scene, camera);
-});
-
-// ─── Color swatches ───────────────────────────────────────────────────────
+// ─── Colour swapping ──────────────────────────────────────────────────────
 function setColor(key) {
   const hex = COLORS[key].hex;
   if (structureMat) {
@@ -262,112 +145,150 @@ function setColor(key) {
   document.querySelectorAll(".swatch").forEach((s) => {
     s.setAttribute("aria-selected", String(s.dataset.color === key));
   });
+  const nameEl = document.getElementById("color-name");
+  if (nameEl) nameEl.textContent = COLORS[key].name;
 }
-document.querySelectorAll(".swatch").forEach((btn) => {
-  btn.addEventListener("click", () => setColor(btn.dataset.color));
-});
 
-let currentColorIdx = 0;
-const colorKeys = Object.keys(COLORS);
-document.getElementById("ar-color").addEventListener("click", () => {
-  currentColorIdx = (currentColorIdx + 1) % colorKeys.length;
-  setColor(colorKeys[currentColorIdx]);
-});
+// ─── Desktop-only: renderer + viewer + controls + UI ──────────────────────
+if (!isMobile) {
+  const canvas = document.getElementById("viewer");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.xr.enabled = true;
 
-// ─── TV visibility toggle (works in both preview and AR) ──────────────────
-const tvBtn = document.getElementById("tv-toggle");
-const arTvBtn = document.getElementById("ar-tv");
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.06).texture;
 
-function setTvVisible(visible) {
-  tvContainer.visible = visible;
-  const pressed = String(visible);
-  tvBtn.setAttribute("aria-pressed", pressed);
-  arTvBtn.setAttribute("aria-pressed", pressed);
-}
-tvBtn.addEventListener("click", () => setTvVisible(!tvContainer.visible));
-arTvBtn.addEventListener("click", () => setTvVisible(!tvContainer.visible));
-
-document.getElementById("reset-button").addEventListener("click", () => {
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 50);
   camera.position.set(2.4, 1.05, 2.1);
+
+  const keyL = new THREE.DirectionalLight(0xfff5e8, 1.7);
+  keyL.position.set(2.5, 3.5, 2);
+  keyL.castShadow = true;
+  keyL.shadow.mapSize.set(1024, 1024);
+  Object.assign(keyL.shadow.camera, { near: 0.5, far: 8, left: -1.5, right: 1.5, top: 1.5, bottom: -1.5 });
+  keyL.shadow.bias = -0.0002;
+  keyL.shadow.normalBias = 0.02;
+  scene.add(keyL);
+  scene.add(new THREE.AmbientLight(0xc8ddff, 0.35));
+  const rim = new THREE.DirectionalLight(0xa9b4c8, 0.55);
+  rim.position.set(-2, 2, -1.5);
+  scene.add(rim);
+
+  const floor = new THREE.Mesh(
+    new THREE.CircleGeometry(3, 64),
+    new THREE.MeshStandardMaterial({ color: 0xece7df, roughness: 0.95, metalness: 0 }),
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 0.6, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 1.2;
+  controls.maxDistance = 6;
+  controls.maxPolarAngle = Math.PI * 0.52;
+  controls.minPolarAngle = Math.PI * 0.2;
   controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.5;
   controls.update();
-});
+  renderer.domElement.addEventListener("pointerdown",
+    () => { controls.autoRotate = false; }, { once: true });
 
-// ─── AR / WebXR ───────────────────────────────────────────────────────────
-const arButton = document.getElementById("ar-button");
-const arOverlay = document.getElementById("ar-overlay");
-const arHelp = document.getElementById("ar-help");
-const iosModal = document.getElementById("ios-modal");
-document.getElementById("ios-close").addEventListener("click", () => iosModal.classList.remove("open"));
+  function resize() {
+    const r = canvas.getBoundingClientRect();
+    renderer.setSize(r.width, r.height, false);
+    camera.aspect = r.width / Math.max(1, r.height);
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(canvas);
+  resize();
 
-async function checkAR() {
-  if (!("xr" in navigator)) return { ok: false, reason: "no-webxr" };
-  try {
-    const supported = await navigator.xr.isSessionSupported("immersive-ar");
-    return supported ? { ok: true } : { ok: false, reason: "no-ar" };
-  } catch (e) { return { ok: false, reason: "error" }; }
+  renderer.setAnimationLoop(() => {
+    controls.update();
+    renderer.render(scene, camera);
+  });
+
+  // Swatches
+  document.querySelectorAll(".swatch").forEach((btn) => {
+    btn.addEventListener("click", () => setColor(btn.dataset.color));
+  });
+
+  // TV toggle
+  const tvBtn = document.getElementById("tv-toggle");
+  tvBtn.addEventListener("click", () => {
+    tvContainer.visible = !tvContainer.visible;
+    tvBtn.setAttribute("aria-pressed", String(tvContainer.visible));
+  });
+
+  // "Show in your space" → QR modal
+  document.getElementById("ar-link-desktop").addEventListener("click", showQR);
 }
-const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-(async () => {
-  if (isiOS) {
-    arHelp.textContent = "Tap to open in AR Quick Look. Move your phone slowly, then drag the stand to where you want it.";
-    return;
-  }
-  const ar = await checkAR();
-  if (ar.ok) {
-    arHelp.textContent = "Tap to launch AR. Walk back a step, point at the floor, then tap to place.";
-  } else {
-    arHelp.textContent = "WebXR AR isn't available here. Open this page in Chrome on Android (with ARCore), or in Safari on iPhone/iPad.";
-  }
-})();
-
-async function startAR() {
-  // iOS path: AR Quick Look via a USDZ exported from the current scene
-  if (isiOS) { return launchQuickLook(); }
-  const ar = await checkAR();
-  if (!ar.ok) { iosModal.classList.add("open"); return; }
-  try {
-    const session = await navigator.xr.requestSession("immersive-ar", {
-      requiredFeatures: ["hit-test"],
-      optionalFeatures: ["dom-overlay", "local-floor"],
-      domOverlay: { root: arOverlay },
-    });
-    await onSessionStart(session);
-  } catch (e) {
-    console.error(e);
-    alert("Couldn't start AR: " + e.message);
-  }
+// ─── QR modal (desktop) ───────────────────────────────────────────────────
+function showQR() {
+  const url = window.location.href.split("#")[0];
+  const qr = qrcode(0, "M");
+  qr.addData(url);
+  qr.make();
+  // 6px modules with 2-module border gives ~200px visual size
+  document.getElementById("qr-frame").innerHTML = qr.createSvgTag({
+    cellSize: 6, margin: 2, scalable: true,
+  });
+  document.getElementById("qr-url").textContent = url;
+  document.getElementById("qr-modal").classList.add("open");
 }
-arButton.addEventListener("click", startAR);
+const qrModal = document.getElementById("qr-modal");
+if (qrModal) {
+  document.getElementById("qr-close").addEventListener("click", () => qrModal.classList.remove("open"));
+  qrModal.addEventListener("click", (e) => { if (e.target === qrModal) qrModal.classList.remove("open"); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") qrModal.classList.remove("open"); });
+}
 
-// ─── iOS AR Quick Look (USDZ) ─────────────────────────────────────────────
+// ─── Mobile AR launch ─────────────────────────────────────────────────────
+async function launchAR() {
+  await assetsReady;
+  if (isiOS) return launchQuickLook();
+  const ar = await checkWebXR();
+  if (ar.ok) return startWebXR();
+  const hint = document.getElementById("ar-hint");
+  if (hint) hint.textContent = "AR isn't available on this browser. Try Safari (iPhone) or Chrome with ARCore (Android).";
+}
+
+async function checkWebXR() {
+  if (!("xr" in navigator)) return { ok: false };
+  try {
+    return { ok: await navigator.xr.isSessionSupported("immersive-ar") };
+  } catch { return { ok: false }; }
+}
+
+const arLinkMobile = document.getElementById("ar-link-mobile");
+if (arLinkMobile) arLinkMobile.addEventListener("click", launchAR);
+
+// ─── iOS AR Quick Look (USDZ exported from the current scene) ─────────────
 let lastUsdzUrl = null;
 async function launchQuickLook() {
-  arButton.disabled = true;
-  arButton.querySelector(".ar-icon")?.classList.add("loading");
-  const prevLabel = arButton.textContent.trim();
+  const hint = document.getElementById("ar-hint");
+  if (hint) hint.textContent = "Preparing AR…";
   try {
-    // Build a fresh export tree from the current scene so colour swaps and
-    // TV-toggle state are captured. USDZExporter walks the supplied root.
     const exportRoot = product.clone(true);
-    // Match the user's current TV visibility
     exportRoot.traverse((o) => { if (o.name === "tv") o.visible = tvContainer.visible; });
-
     const exporter = new USDZExporter();
     const arraybuffer = await exporter.parse(exportRoot);
     const blob = new Blob([arraybuffer], { type: "model/vnd.usdz+zip" });
     if (lastUsdzUrl) URL.revokeObjectURL(lastUsdzUrl);
     lastUsdzUrl = URL.createObjectURL(blob);
 
-    // AR Quick Look requires a real <a rel="ar"> click. Safari intercepts before
-    // navigation and opens the file in the Quick Look AR viewer.
     const a = document.createElement("a");
     a.rel = "ar";
     a.href = lastUsdzUrl + "#allowsContentScaling=0";
-    // The anchor must contain an <img> for Safari to treat it as AR-eligible.
     const img = document.createElement("img");
     img.alt = "Moon Rollin' in AR";
     img.style.display = "none";
@@ -375,87 +296,99 @@ async function launchQuickLook() {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => a.remove(), 1000);
+    if (hint) hint.textContent = "Tap to open in AR. Move your phone slowly, then drag to place the stand.";
   } catch (e) {
     console.error("USDZ export failed", e);
-    alert("Couldn't open AR Quick Look: " + e.message);
-  } finally {
-    arButton.disabled = false;
+    if (hint) hint.textContent = "Couldn't open AR: " + e.message;
   }
 }
 
-async function onSessionStart(session) {
-  arOverlay.classList.add("active");
-  arOverlay.classList.remove("placed");
-  document.getElementById("ar-hint").textContent = "Move your phone slowly to find a floor";
+// ─── Android WebXR (minimal — tap to place, system back to exit) ──────────
+async function startWebXR() {
+  // Need a renderer for WebXR. Create one for the session only.
+  let xrCanvas = document.createElement("canvas");
+  xrCanvas.style.position = "fixed";
+  xrCanvas.style.inset = "0";
+  xrCanvas.style.width = "100%";
+  xrCanvas.style.height = "100%";
+  xrCanvas.style.zIndex = "100";
+  document.body.appendChild(xrCanvas);
 
-  floor.visible = false;
+  const renderer = new THREE.WebGLRenderer({ canvas: xrCanvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.xr.enabled = true;
+
+  const camera = new THREE.PerspectiveCamera(70, 1, 0.05, 50);
+  // Minimal lights on top of the existing environment
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbbb, 0.7));
+
+  // Move product out of pivot for AR positioning
   productPivot.remove(product);
+  scene.add(product);
   product.visible = false;
   product.position.set(0, 0, 0);
   product.rotation.set(0, 0, 0);
-  scene.add(product);
 
-  if (!reticle) {
-    const ringGeo = new THREE.RingGeometry(0.10, 0.115, 48).rotateX(-Math.PI/2);
-    reticle = new THREE.Mesh(ringGeo,
-      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }));
-    reticle.matrixAutoUpdate = false;
-    reticle.visible = false;
-    scene.add(reticle);
-  }
+  const reticle = new THREE.Mesh(
+    new THREE.RingGeometry(0.10, 0.115, 48).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0xffffff }),
+  );
+  reticle.matrixAutoUpdate = false;
   reticle.visible = false;
-  placed = false;
+  scene.add(reticle);
+
+  let hitSrc = null;
+  let placed = false;
+
+  const session = await navigator.xr.requestSession("immersive-ar", {
+    requiredFeatures: ["hit-test"],
+    optionalFeatures: ["local-floor"],
+  });
+  session.addEventListener("end", () => {
+    scene.remove(product); scene.remove(reticle);
+    productPivot.add(product);
+    product.visible = true;
+    xrCanvas.remove();
+  });
 
   await renderer.xr.setSession(session);
 
   const controller = renderer.xr.getController(0);
-  controller.addEventListener("select", onSelect);
+  controller.addEventListener("select", () => {
+    if (!reticle.visible) return;
+    const pos = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    const scl = new THREE.Vector3();
+    reticle.matrix.decompose(pos, quat, scl);
+    product.position.copy(pos);
+    const cam = new THREE.Vector3();
+    camera.getWorldPosition(cam);
+    product.rotation.set(0, Math.atan2(cam.x - pos.x, cam.z - pos.z), 0);
+    product.visible = true;
+    placed = true;
+    reticle.visible = false;
+  });
   scene.add(controller);
+
+  renderer.setAnimationLoop((time, frame) => {
+    if (frame && !placed) {
+      const refSpace = renderer.xr.getReferenceSpace();
+      if (!hitSrc) {
+        session.requestReferenceSpace("viewer").then((vs) =>
+          session.requestHitTestSource({ space: vs }).then((s) => { hitSrc = s; }),
+        );
+      } else {
+        const hits = frame.getHitTestResults(hitSrc);
+        if (hits.length) {
+          reticle.visible = true;
+          reticle.matrix.fromArray(hits[0].getPose(refSpace).transform.matrix);
+        } else {
+          reticle.visible = false;
+        }
+      }
+    }
+    renderer.render(scene, camera);
+  });
 }
-
-function onSelect() {
-  if (!reticle || !reticle.visible || placed) return;
-  const pos = new THREE.Vector3();
-  const quat = new THREE.Quaternion();
-  const scl = new THREE.Vector3();
-  reticle.matrix.decompose(pos, quat, scl);
-
-  product.position.copy(pos);
-  const cam = new THREE.Vector3();
-  camera.getWorldPosition(cam);
-  const dx = cam.x - pos.x, dz = cam.z - pos.z;
-  product.rotation.set(0, Math.atan2(dx, dz), 0);
-
-  product.visible = true;
-  placed = true;
-  reticle.visible = false;
-  arOverlay.classList.add("placed");
-}
-
-function onSessionEnd() {
-  arOverlay.classList.remove("active", "placed");
-  hitTestSource = null;
-  if (reticle) reticle.visible = false;
-  scene.remove(product);
-  productPivot.add(product);
-  product.visible = true;
-  product.position.set(0, 0, 0);
-  product.rotation.set(0, 0, 0);
-  floor.visible = true;
-  placed = false;
-}
-
-document.getElementById("ar-exit").addEventListener("click", () => {
-  const s = renderer.xr.getSession(); if (s) s.end();
-});
-document.getElementById("ar-reset").addEventListener("click", () => {
-  placed = false;
-  product.visible = false;
-  arOverlay.classList.remove("placed");
-});
-document.getElementById("ar-rotate-l").addEventListener("click", () => {
-  if (placed) product.rotation.y += Math.PI / 12;
-});
-document.getElementById("ar-rotate-r").addEventListener("click", () => {
-  if (placed) product.rotation.y -= Math.PI / 12;
-});
