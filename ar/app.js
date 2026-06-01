@@ -308,13 +308,15 @@ function drawTvFrame(t) {
 // Seed an initial frame so the USDZ export has something to bake
 drawTvFrame(0);
 
-// TV sizes (m) for the front-face overlay plane. After the 180° flip the
-// camera sees the GLB's flat back face (full outer extent). The GLB only
-// models a vertical bezel (~16.5 mm top/bottom); the same absolute inset
-// applied to left/right gives a uniform black border on every side.
-// Numbers measured directly from each TV mesh's vertex layers.
+// TV sizes (m) for the front-face overlay plane and the mount height `y`.
+// The GLB only models a vertical bezel (~16.5 mm top/bottom); the same
+// absolute inset applied to left/right gives a uniform black border on every
+// side. Numbers measured directly from each TV mesh's vertex layers.
+// 50/60/70 keep their bottom edge at y≈0.45 (tops tower above the frame); the
+// 40" sits higher (y=0.77) so its top meets the horizontal cross bar (top
+// ≈1.05) with just the leg-top pipes showing above — per Pedestal's photos.
 const TV_FACE = {
-  "40": { w: 0.909, h: 0.519, y: 0.73 },
+  "40": { w: 0.909, h: 0.519, y: 0.77 },
   "50": { w: 1.134, h: 0.645, y: 0.79 },
   "60": { w: 1.353, h: 0.773, y: 0.85 },
   "70": { w: 1.594, h: 0.930, y: 0.93 },
