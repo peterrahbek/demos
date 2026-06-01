@@ -205,7 +205,7 @@ const assetsReady = Promise.all([
       o.castShadow = true; o.receiveShadow = true;
       o.material = makeTvBoxMaterial();
     });
-    tv.position.set(0, TV_FACE[size].y, 0.038);
+    tv.position.set(0, TV_FACE[size].y, -0.038);
     tv.updateMatrixWorld(true);
 
     // The screen meshes are not perfectly symmetric around their local origin
@@ -356,14 +356,14 @@ function setColor(key) {
     // needs metalness + roughness maps.
     structureMat.aoMap = null;
     if (isChrome) {
-      // Glassy mirror chrome. Small uniform roughness floor (0.07) rather
-      // than the atlas's true-zero so the flat VESA strips don't reflect
-      // bright windows as razor-hard blotches, but reflections stay crisp
-      // and mirror-like across both tubes and flats.
+      // Glassier mirror chrome. Small uniform roughness floor (0.04) so the
+      // flat VESA strips don't reflect bright windows as razor-hard blotches,
+      // but reflections stay crisp and mirror-like across both tubes and
+      // flats.
       structureMat.metalnessMap = TEX.bodyChromeMet;
       structureMat.roughnessMap = null;
       structureMat.metalness = 1.0;
-      structureMat.roughness = 0.07;
+      structureMat.roughness = 0.04;
     } else {
       structureMat.metalnessMap = null;
       structureMat.roughnessMap = null;
