@@ -193,25 +193,21 @@ const assetsReady = Promise.all([
     const tv = gltf.scene;
     tv.userData.size = size;
 
-    // The TV GLBs were authored with the flat screen face on -Z and the
-    // beveled back on +Z. Rotate the inner mesh node 180° around Y so the
-    // screen face points at +Z. We rotate the GLB child rather than the
-    // wrapping `tv` group so the overlay we add below stays at the screen
-    // side.
-    for (const child of tv.children) child.rotation.y = Math.PI;
-
+    // The TV GLBs are authored with the screen face on -Z and the beveled
+    // back on +Z, matching Pedestal Studio's convention: the strip's
+    // TV-mount face and U-hooks sit on the body's -Z side, so the TV bolts
+    // on with its back at +Z and its screen facing -Z. We leave the mesh in
+    // its native orientation. Quick Look opens with the camera on the -Z
+    // side, so this is also the face that greets the viewer in AR.
     tv.traverse((o) => {
       if (!o.isMesh) return;
       o.castShadow = true; o.receiveShadow = true;
       o.material = makeTvBoxMaterial();
     });
-    // Mount the TV so its back face sits flush against the screw heads that
-    // protrude from the VESA strip front face: per the assembly guide, the
-    // vertical strips bolt directly to the TV's VESA holes (only the screw
-    // heads clear the strip face). Strip front ≈ z+0.003, allow ~3 mm for
-    // the bolt heads, TV depth 35 mm with the screen on +Z after the flip
-    // → centre at z+0.024 → back at z+0.0065, screen at z+0.0415.
-    tv.position.set(0, TV_FACE[size].y, 0.024);
+    // TV depth 35 mm with the back face on +Z. Strip TV-mount face ≈ z+0.003
+    // → centre at z-0.0145 → back at +0.003 (flush against the bolt heads),
+    // screen at -0.032.
+    tv.position.set(0, TV_FACE[size].y, -0.0145);
     tv.updateMatrixWorld(true);
 
     // The screen meshes are not perfectly symmetric around their local origin
@@ -230,8 +226,9 @@ const assetsReady = Promise.all([
     overlay.position.set(
       meshCentre.x - tv.position.x,
       meshCentre.y - tv.position.y,
-      TV_DEPTH_HALF + 0.001,
+      -(TV_DEPTH_HALF + 0.001),
     );
+    overlay.rotation.y = Math.PI;
     overlay.visible = false;
     tv.add(overlay);
 
