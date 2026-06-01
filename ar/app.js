@@ -205,7 +205,12 @@ const assetsReady = Promise.all([
       o.castShadow = true; o.receiveShadow = true;
       o.material = makeTvBoxMaterial();
     });
-    tv.position.set(0, TV_FACE[size].y, -0.038);
+    // Mount the TV so its back face sits flush against the front of the VESA
+    // strips (strip front ≈ z+0.003, TV is 35 mm deep with the screen on +Z
+    // after the 180° flip). Centre at z+0.021 → back face ≈ +0.0035, screen
+    // face ≈ +0.038, matching Pedestal's side profile: screen out front,
+    // frame and legs behind.
+    tv.position.set(0, TV_FACE[size].y, 0.021);
     tv.updateMatrixWorld(true);
 
     // The screen meshes are not perfectly symmetric around their local origin
