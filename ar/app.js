@@ -204,10 +204,17 @@ const assetsReady = Promise.all([
       o.castShadow = true; o.receiveShadow = true;
       o.material = makeTvBoxMaterial();
     });
-    // TV depth 35 mm with the back face on +Z. Strip TV-mount face ≈ z+0.003
-    // → centre at z-0.0145 → back at +0.003 (flush against the bolt heads),
-    // screen at -0.032.
-    tv.position.set(0, TV_FACE[size].y, -0.0145);
+    // Seat the TV's back (the +Z face of the native mesh) against the VESA
+    // spacer/screw heads so the whole frame sits behind the slab. Measured
+    // from the GLBs in the TV-mount y-band: strips at z≈-0.020, legs at
+    // z≈-0.017→0, and the Metal.Screws spacer heads protrude forward to
+    // z=-0.0295. TV is 35 mm deep, so resting the back on the spacers puts
+    // the centre at -0.0295 - 0.0175 = -0.047 → back at -0.0295 (on the
+    // spacers), screen (-Z face) at -0.0645, ~9.5 mm spacer gap to the
+    // strips. Front view is a clean screen; back view shows the frame
+    // mounted flat on the panel, matching Pedestal's product photos.
+    const SPACER_FRONT_Z = -0.0295;
+    tv.position.set(0, TV_FACE[size].y, SPACER_FRONT_Z - TV_DEPTH_HALF);
     tv.updateMatrixWorld(true);
 
     // The screen meshes are not perfectly symmetric around their local origin
