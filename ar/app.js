@@ -205,12 +205,13 @@ const assetsReady = Promise.all([
       o.castShadow = true; o.receiveShadow = true;
       o.material = makeTvBoxMaterial();
     });
-    // Mount the TV in front of the VESA strips with a visible spacer gap,
-    // matching Pedestal's product photos: the TV's back sits ~3 cm forward
-    // of the strip front face (spacers run between). Strip front ≈ z+0.003,
-    // TV depth 35 mm with screen on +Z after the flip → centre at z+0.056,
-    // back at z+0.0385, screen at z+0.0735.
-    tv.position.set(0, TV_FACE[size].y, 0.056);
+    // Mount the TV so its back face sits flush against the screw heads that
+    // protrude from the VESA strip front face: per the assembly guide, the
+    // vertical strips bolt directly to the TV's VESA holes (only the screw
+    // heads clear the strip face). Strip front ≈ z+0.003, allow ~3 mm for
+    // the bolt heads, TV depth 35 mm with the screen on +Z after the flip
+    // → centre at z+0.024 → back at z+0.0065, screen at z+0.0415.
+    tv.position.set(0, TV_FACE[size].y, 0.024);
     tv.updateMatrixWorld(true);
 
     // The screen meshes are not perfectly symmetric around their local origin
