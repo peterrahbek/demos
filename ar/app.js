@@ -313,10 +313,12 @@ drawTvFrame(0);
 // absolute inset applied to left/right gives a uniform black border on every
 // side. Numbers measured directly from each TV mesh's vertex layers.
 // 50/60/70 keep their bottom edge at y≈0.45 (tops tower above the frame); the
-// 40" sits higher (y=0.77) so its top meets the horizontal cross bar (top
-// ≈1.05) with just the leg-top pipes showing above — per Pedestal's photos.
+// 40" sits higher so the top of its screen is level with the top of the
+// horizontal cross bar. Measured: rail top = 1.0458, 40" slab half-height =
+// 0.2796 → y = 1.0458 - 0.2796 = 0.766. The corner posts (top 1.0638) then
+// stand ~18 mm proud of the screen — the "bit of pipe" showing above.
 const TV_FACE = {
-  "40": { w: 0.909, h: 0.519, y: 0.77 },
+  "40": { w: 0.909, h: 0.519, y: 0.766 },
   "50": { w: 1.134, h: 0.645, y: 0.79 },
   "60": { w: 1.353, h: 0.773, y: 0.85 },
   "70": { w: 1.594, h: 0.930, y: 0.93 },
